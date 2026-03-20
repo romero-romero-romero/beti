@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:betty_app/core/constants/app_strings.dart';
+import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
@@ -43,71 +43,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await Supabase.instance.client.auth.signUp(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        data: _nameController.text.trim().isNotEmpty
-            ? {'full_name': _nameController.text.trim()}
-            : null,
-      );
-
-      if (response.user != null && mounted) {
-        if (response.session != null) {
-          // TODO Fase 2: Cachear sesión en Isar (UserModel)
-          context.goNamed('home');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Registro exitoso. Verifica tu correo electrónico.'),
-              backgroundColor: Colors.green,
-            ),
-          );
-          context.goNamed('login');
-        }
-      }
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      final msg = e.message.contains('User already registered')
-          ? AppStrings.errorUserExists
-          : e.message;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+    await ref.read(authProvider.notifier).signUp(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+          fullName: _nameController.text.trim().isNotEmpty
+              ? _nameController.text.trim()
+              : null,
         );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   Future<void> _signUpWithGoogle() async {
-    setState(() => _isLoading = true);
-    try {
-      await Supabase.instance.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'io.supabase.bettyapp://auth-callback',
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    await ref.read(authProvider.notifier).signInWithGoogle();
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isLoading = authState is AuthLoading;
+
+    // Escuchar errores y cambios de estado
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next is AuthError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.message), backgroundColor: Colors.red),
+        );
+      }
+      if (next is AuthUnauthenticated && previous is AuthLoading) {
+        // Registro exitoso pero requiere verificación de email
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registro exitoso. Verifica tu correo electrónico.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.goNamed('login');
+      }
+    });
+
     final size = MediaQuery.of(context).size;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -143,7 +117,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _nameController,
                     keyboardType: TextInputType.name,
-                    enabled: !_isLoading,
+                    enabled: !isLoading,
                     decoration: const InputDecoration(
                       labelText: '${AppStrings.fullName} (opcional)',
                       prefixIcon: Icon(Icons.person_outline),
@@ -155,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    enabled: !_isLoading,
+                    enabled: !isLoading,
                     decoration: const InputDecoration(
                       labelText: AppStrings.email,
                       prefixIcon: Icon(Icons.email_outlined),
@@ -175,7 +149,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    enabled: !_isLoading,
+                    enabled: !isLoading,
                     decoration: InputDecoration(
                       labelText: AppStrings.password,
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -199,7 +173,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: _obscureConfirmPassword,
-                    enabled: !_isLoading,
+                    enabled: !isLoading,
                     decoration: InputDecoration(
                       labelText: AppStrings.confirmPassword,
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -226,13 +200,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Checkbox(
                         value: _agreeToTerms,
-                        onChanged: _isLoading
+                        onChanged: isLoading
                             ? null
                             : (v) => setState(() => _agreeToTerms = v ?? false),
                       ),
                       Expanded(
                         child: GestureDetector(
-                          onTap: _isLoading
+                          onTap: isLoading
                               ? null
                               : () => setState(() => _agreeToTerms = !_agreeToTerms),
                           child: const Text(AppStrings.termsAgreement),
@@ -247,8 +221,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _signUp,
-                      child: _isLoading
+                      onPressed: isLoading ? null : _signUp,
+                      child: isLoading
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -277,7 +251,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _signUpWithGoogle,
+                      onPressed: isLoading ? null : _signUpWithGoogle,
                       icon: const Icon(Icons.g_mobiledata, size: 24),
                       label: const Text(AppStrings.continueWithGoogle),
                     ),
@@ -290,7 +264,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       const Text(AppStrings.hasAccount),
                       TextButton(
-                        onPressed: _isLoading
+                        onPressed: isLoading
                             ? null
                             : () => context.goNamed('login'),
                         child: const Text(AppStrings.login),

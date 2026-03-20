@@ -45,5 +45,18 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+<!-- Micrófono (Speech-to-Text) -->
+<key>NSSpeechRecognitionUsageDescription</key>
+<string>Betty usa reconocimiento de voz para registrar tus gastos dictándolos.</string>
+<key>NSMicrophoneUsageDescription</key>
+<string>Betty necesita el micrófono para transcribir tu voz a texto.</string>
+
+<!-- Cámara (OCR de tickets) -->
+<key>NSCameraUsageDescription</key>
+<string>Betty usa la cámara para fotografiar tickets y extraer los datos automáticamente.</string>
+
+<!-- Galería de fotos (seleccionar ticket existente) -->
+<key>NSPhotoLibraryUsageDescription</key>
+<string>Betty accede a tu galería para seleccionar fotos de tickets.</string>
 </dict>
 </plist>

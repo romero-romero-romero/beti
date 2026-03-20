@@ -11,10 +11,10 @@ void main() async {
   // 1. Cargar variables de entorno
   await dotenv.load(fileName: '.env');
 
-  // 2. Inicializar Isar (fuente de verdad local)
+  // 2. Inicializar Isar PRIMERO (fuente de verdad local, siempre funciona)
   await IsarInstance.initialize();
 
-  // 3. Inicializar Supabase (solo para Auth + Backup sync)
+  // 3. Inicializar Supabase (puede fallar sin internet — la app sigue offline)
   final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
@@ -22,14 +22,12 @@ void main() async {
     await Supabase.initialize(
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
-      debug: true,
     );
   } catch (e) {
-    // Si Supabase falla (sin internet), la app sigue funcionando offline.
     debugPrint('Supabase init failed (offline mode): $e');
   }
 
-  // 4. Lanzar la app con Riverpod como contenedor de estado
+  // 4. Lanzar la app con Riverpod
   runApp(
     const ProviderScope(
       child: BettyApp(),

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:betty_app/core/constants/app_strings.dart';
+import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
 
   @override
@@ -27,55 +27,14 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    try {
-      final response = await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (response.user != null && mounted) {
-        // TODO Fase 2: Cachear sesión en Isar (UserModel) para persistencia offline
-        context.goNamed('home');
-      }
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      final msg = e.message.contains('Invalid login credentials')
-          ? AppStrings.errorInvalidCredentials
-          : e.message.contains('Email not confirmed')
-              ? AppStrings.errorEmailNotConfirmed
-              : e.message;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), backgroundColor: Colors.red),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+    await ref.read(authProvider.notifier).signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
         );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
   }
 
   Future<void> _signInWithGoogle() async {
-    setState(() => _isLoading = true);
-    try {
-      await Supabase.instance.client.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'io.supabase.bettyapp://auth-callback',
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    await ref.read(authProvider.notifier).signInWithGoogle();
   }
 
   Future<void> _resetPassword() async {
@@ -89,11 +48,10 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
     try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(
-        _emailController.text.trim(),
-      );
+      await ref.read(authProvider.notifier).resetPassword(
+            _emailController.text.trim(),
+          );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -108,14 +66,26 @@ class _LoginScreenState extends State<LoginScreen> {
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final isLoading = authState is AuthLoading;
+
+    // Escuchar errores del auth
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next is AuthError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.message), backgroundColor: Colors.red),
+        );
+      }
+      // La navegación a /home la maneja el redirect del GoRouter
+    });
+
     final size = MediaQuery.of(context).size;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -126,7 +96,6 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // TODO Fase 5: Reemplazar con logo/animación de Betty
                   Icon(
                     Icons.account_balance_wallet_rounded,
                     size: size.height * 0.12,
@@ -145,15 +114,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    enabled: !_isLoading,
+                    enabled: !isLoading,
                     decoration: const InputDecoration(
                       labelText: AppStrings.email,
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Ingresa tu correo';
-                      }
+                      if (value == null || value.trim().isEmpty) return 'Ingresa tu correo';
                       if (!RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,4}$')
                           .hasMatch(value.trim())) {
                         return 'Formato de correo inválido';
@@ -167,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    enabled: !_isLoading,
+                    enabled: !isLoading,
                     decoration: InputDecoration(
                       labelText: AppStrings.password,
                       prefixIcon: const Icon(Icons.lock_outline),
@@ -191,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: _isLoading ? null : _resetPassword,
+                      onPressed: isLoading ? null : _resetPassword,
                       child: const Text(AppStrings.forgotPassword),
                     ),
                   ),
@@ -202,8 +169,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _signInWithPassword,
-                      child: _isLoading
+                      onPressed: isLoading ? null : _signInWithPassword,
+                      child: isLoading
                           ? const SizedBox(
                               width: 20,
                               height: 20,
@@ -232,7 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton.icon(
-                      onPressed: _isLoading ? null : _signInWithGoogle,
+                      onPressed: isLoading ? null : _signInWithGoogle,
                       icon: const Icon(Icons.g_mobiledata, size: 24),
                       label: const Text(AppStrings.continueWithGoogle),
                     ),
@@ -245,7 +212,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Text(AppStrings.noAccount),
                       TextButton(
-                        onPressed: _isLoading
+                        onPressed: isLoading
                             ? null
                             : () => context.goNamed('register'),
                         child: const Text(AppStrings.register),
