@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:betty_app/core/constants/app_strings.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -81,7 +82,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           SnackBar(content: Text(next.message), backgroundColor: Colors.red),
         );
       }
-      // La navegación a /home la maneja el redirect del GoRouter
+      if (next is AuthAuthenticated && previous is! AuthAuthenticated) {
+        ref.read(syncProvider.notifier).initialPull();
+      }
     });
 
     final size = MediaQuery.of(context).size;
@@ -120,7 +123,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) return 'Ingresa tu correo';
+                      if (value == null || value.trim().isEmpty)
+                        return 'Ingresa tu correo';
                       if (!RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,4}$')
                           .hasMatch(value.trim())) {
                         return 'Formato de correo inválido';
@@ -144,12 +148,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
                         ),
-                        onPressed: () =>
-                            setState(() => _obscurePassword = !_obscurePassword),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Ingresa tu contraseña';
+                      if (value == null || value.isEmpty)
+                        return 'Ingresa tu contraseña';
                       if (value.length < 6) return 'Mínimo 6 caracteres';
                       return null;
                     },
@@ -186,7 +191,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       const Expanded(child: Divider()),
                       Padding(
-                        padding: EdgeInsets.symmetric(horizontal: size.width * 0.03),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: size.width * 0.03),
                         child: const Text('o'),
                       ),
                       const Expanded(child: Divider()),
