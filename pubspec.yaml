@@ -1,10 +1,10 @@
 name: betty_app
 description: "Betty — App de Salud Financiera Minimalista y Offline-First"
-publish_to: 'none'
+publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: ">=3.2.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -15,6 +15,7 @@ dependencies:
   # ── Auth & Backend (solo backup) ──
   supabase_flutter: ^2.12.0
   flutter_dotenv: ^5.2.1
+  shared_preferences: ^2.0.15
 
   # ── Base de Datos Local (Fuente de Verdad) ──
   isar: ^3.1.0+1
