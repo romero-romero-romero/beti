@@ -1,99 +1,152 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:betty_app/core/constants/app_colors.dart';
 import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/core/enums/transaction_type.dart';
 import 'package:betty_app/core/utils/currency_formatter.dart';
+import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
 
-/// Widget para mostrar una transacción en una lista.
+/// Tile de transacción minimalista inspirado en el EJEMPLO-APP.
+///
+/// - Círculo con ícono de flecha (verde ingreso / rojo gasto)
+/// - Descripción + categoría + fecha
+/// - Monto con color
 class TransactionTile extends StatelessWidget {
   final TransactionEntity transaction;
-  final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final VoidCallback? onTap;
 
   const TransactionTile({
     super.key,
     required this.transaction,
-    this.onTap,
     this.onDelete,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isExpense = transaction.type == TransactionType.expense;
-    final color = isExpense ? Colors.red : Colors.green;
+    final color = isExpense ? AppColors.expense : AppColors.income;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Dismissible(
-      key: Key(transaction.uuid),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: Colors.red.shade100,
-        child: const Icon(Icons.delete_outline, color: Colors.red),
-      ),
-      confirmDismiss: (_) async {
-        return await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Eliminar'),
-            content: const Text('¿Estás seguro de eliminar este movimiento?'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-              TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Eliminar')),
-            ],
-          ),
-        );
-      },
-      onDismissed: (_) => onDelete?.call(),
-      child: ListTile(
-        onTap: onTap,
-        leading: CircleAvatar(
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Text(_categoryEmoji(transaction.category), style: const TextStyle(fontSize: 20)),
-        ),
-        title: Text(
-          transaction.description,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          '${transaction.transactionDate.day}/${transaction.transactionDate.month}/${transaction.transactionDate.year}',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
-        trailing: Text(
-          '${isExpense ? "-" : "+"}${CurrencyFormatter.format(transaction.amount)}',
-          style: TextStyle(
-            color: color,
-            fontWeight: FontWeight.bold,
-            fontSize: 15,
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            // ── Ícono circular ──
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isDark
+                    ? color.withValues(alpha: 0.15)
+                    : color.withValues(alpha: 0.1),
+              ),
+              child: Icon(
+                isExpense
+                    ? Icons.arrow_upward_rounded
+                    : Icons.arrow_downward_rounded,
+                color: color,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // ── Info ──
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.description.isNotEmpty
+                        ? transaction.description
+                        : _categoryLabel(transaction.category),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Text(
+                        _categoryLabel(transaction.category),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          '·',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? AppColors.grey.withValues(alpha: 0.5)
+                                : AppColors.lightGrey,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        DateFormat('d MMM', 'es_MX').format(transaction.transactionDate),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Monto ──
+            Text(
+              '${isExpense ? "-" : "+"}${CurrencyFormatter.format(transaction.amount)}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  String _categoryEmoji(CategoryType cat) {
+  String _categoryLabel(CategoryType cat) {
     return switch (cat) {
-      CategoryType.food => '🍽️',
-      CategoryType.groceries => '🛒',
-      CategoryType.transport => '🚗',
-      CategoryType.housing => '🏠',
-      CategoryType.utilities => '💡',
-      CategoryType.health => '🏥',
-      CategoryType.education => '📚',
-      CategoryType.entertainment => '🎬',
-      CategoryType.clothing => '👕',
-      CategoryType.subscriptions => '📱',
-      CategoryType.debtPayment => '💳',
-      CategoryType.personalCare => '✨',
-      CategoryType.gifts => '🎁',
-      CategoryType.pets => '🐾',
-      CategoryType.salary => '💰',
-      CategoryType.freelance => '💻',
-      CategoryType.investment => '📈',
-      CategoryType.refund => '↩️',
-      CategoryType.otherIncome => '📌',
-      CategoryType.other => '📌',
+      CategoryType.food => 'Comida',
+      CategoryType.groceries => 'Despensa',
+      CategoryType.transport => 'Transporte',
+      CategoryType.housing => 'Casa',
+      CategoryType.utilities => 'Servicios',
+      CategoryType.health => 'Salud',
+      CategoryType.education => 'Educación',
+      CategoryType.entertainment => 'Entretenimiento',
+      CategoryType.clothing => 'Ropa',
+      CategoryType.subscriptions => 'Suscripciones',
+      CategoryType.debtPayment => 'Deudas',
+      CategoryType.personalCare => 'Cuidado personal',
+      CategoryType.gifts => 'Regalos',
+      CategoryType.pets => 'Mascotas',
+      CategoryType.salary => 'Salario',
+      CategoryType.freelance => 'Freelance',
+      CategoryType.investment => 'Inversión',
+      CategoryType.refund => 'Reembolso',
+      CategoryType.otherIncome => 'Otro ingreso',
+      CategoryType.other => 'Otro',
     };
   }
 }
