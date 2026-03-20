@@ -7,7 +7,6 @@ import 'package:betty_app/core/constants/app_colors.dart';
 import 'package:betty_app/core/utils/currency_formatter.dart';
 import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
-import 'package:betty_app/features/financial_health/presentation/widgets/health_thermometer.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
 import 'package:betty_app/features/transactions/presentation/widgets/transaction_tile.dart';
 

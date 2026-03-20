@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/utils/currency_formatter.dart';
 import 'package:betty_app/core/utils/platform_helper.dart';
 
 /// Pantalla de Tarjetas de Crédito — rediseñada con estética minimalista.
