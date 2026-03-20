@@ -1,146 +1,333 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:betty_app/core/constants/app_colors.dart';
+import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
 
+/// Pantalla de Perfil con configuraciones.
+///
+/// Usa CupertinoListSection en iOS, Card en Android.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authProvider);
-    final syncState = ref.watch(syncProvider);
-    final pendingAsync = ref.watch(pendingSyncCountProvider);
     final theme = Theme.of(context);
-
-    final user = authState is AuthAuthenticated ? authState.user : null;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 20),
-              // Avatar
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                child: Text(
-                  (user?.displayName?.isNotEmpty == true ? user!.displayName![0] : user?.email[0] ?? 'B').toUpperCase(),
-                  style: TextStyle(fontSize: 32, color: theme.colorScheme.primary, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(user?.displayName ?? 'Usuario', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-              Text(user?.email ?? '', style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey)),
-              const SizedBox(height: 32),
-
-              // Sync status
-              Card(
-                child: ListTile(
-                  leading: Icon(
-                    syncState == SyncState.syncing ? Icons.sync : Icons.cloud_done_outlined,
-                    color: syncState == SyncState.syncing ? Colors.orange : Colors.green,
-                  ),
-                  title: Text(syncState == SyncState.syncing ? 'Sincronizando...' : 'Sincronizado'),
-                  subtitle: pendingAsync.when(
-                    data: (count) => Text(count > 0 ? '$count cambios pendientes' : 'Todo al día'),
-                    loading: () => const Text('Verificando...'),
-                    error: (_, __) => const Text('Error'),
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: () => ref.read(syncProvider.notifier).forceSync(),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Settings cards
-              Card(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: const Icon(Icons.currency_exchange),
-                      title: const Text('Moneda'),
-                      trailing: Text(user?.currency.toUpperCase() ?? 'MXN', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.notifications_outlined),
-                      title: const Text('Notificaciones'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Configuración de notificaciones próximamente')),
-                        );
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.palette_outlined),
-                      title: const Text('Apariencia'),
-                      subtitle: const Text('Sigue la configuración del sistema'),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Info
-              Card(
-                child: Column(
-                  children: [
-                    const ListTile(
-                      leading: Icon(Icons.info_outline),
-                      title: Text('Betty MVP'),
-                      subtitle: Text('Versión 1.0.0'),
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      leading: const Icon(Icons.shield_outlined),
-                      title: const Text('Privacidad'),
-                      subtitle: const Text('Todos tus datos se procesan en tu dispositivo'),
-                      onTap: () {},
-                    ),
-                  ],
+              // ── Header ──
+              Text(
+                'Perfil',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 24),
 
-              // Logout
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (c) => AlertDialog(
-                        title: const Text('Cerrar sesión'),
-                        content: const Text('Tus datos locales se conservarán.'),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-                          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('Cerrar sesión')),
-                        ],
+              // ── Avatar + Nombre ──
+              Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.primary.withValues(alpha: 0.1),
                       ),
-                    );
-                    if (confirm == true) {
-                      ref.read(authProvider.notifier).signOut();
-                    }
-                  },
-                  icon: const Icon(Icons.logout, color: Colors.red),
-                  label: const Text('Cerrar sesión', style: TextStyle(color: Colors.red)),
-                  style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red)),
+                      child: const Icon(
+                        Icons.person,
+                        size: 36,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Usuario',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'usuario@email.com',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
+
+              // ── Sección Preferencias ──
+              _SectionHeader(title: 'Preferencias', isDark: isDark),
+              const SizedBox(height: 8),
+              _SettingsCard(
+                isDark: isDark,
+                children: [
+                  _SettingsRow(
+                    icon: PlatformHelper.isApple
+                        ? CupertinoIcons.moon
+                        : Icons.dark_mode_outlined,
+                    title: 'Modo oscuro',
+                    subtitle: 'Seguir sistema',
+                    isDark: isDark,
+                    trailing: PlatformHelper.isApple
+                        ? CupertinoSwitch(
+                            value: isDark,
+                            activeTrackColor: AppColors.primary,
+                            onChanged: (_) {
+                              // TODO: Implementar toggle de tema
+                            },
+                          )
+                        : Switch(
+                            value: isDark,
+                            activeColor: AppColors.primary,
+                            onChanged: (_) {},
+                          ),
+                  ),
+                  _SettingsDivider(isDark: isDark),
+                  _SettingsRow(
+                    icon: PlatformHelper.isApple
+                        ? CupertinoIcons.bell
+                        : Icons.notifications_outlined,
+                    title: 'Notificaciones',
+                    subtitle: 'Alertas de corte y pago',
+                    isDark: isDark,
+                    trailing: Icon(
+                      PlatformHelper.isApple
+                          ? CupertinoIcons.chevron_right
+                          : Icons.chevron_right,
+                      size: 18,
+                      color: isDark ? AppColors.grey : AppColors.lightGrey,
+                    ),
+                  ),
+                  _SettingsDivider(isDark: isDark),
+                  _SettingsRow(
+                    icon: PlatformHelper.isApple
+                        ? CupertinoIcons.money_dollar_circle
+                        : Icons.attach_money,
+                    title: 'Moneda',
+                    subtitle: 'MXN — Peso mexicano',
+                    isDark: isDark,
+                    trailing: Icon(
+                      PlatformHelper.isApple
+                          ? CupertinoIcons.chevron_right
+                          : Icons.chevron_right,
+                      size: 18,
+                      color: isDark ? AppColors.grey : AppColors.lightGrey,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // ── Sección Datos ──
+              _SectionHeader(title: 'Datos', isDark: isDark),
+              const SizedBox(height: 8),
+              _SettingsCard(
+                isDark: isDark,
+                children: [
+                  _SettingsRow(
+                    icon: PlatformHelper.isApple
+                        ? CupertinoIcons.cloud_download
+                        : Icons.cloud_download_outlined,
+                    title: 'Exportar datos',
+                    subtitle: 'JSON o CSV',
+                    isDark: isDark,
+                    trailing: Icon(
+                      PlatformHelper.isApple
+                          ? CupertinoIcons.chevron_right
+                          : Icons.chevron_right,
+                      size: 18,
+                      color: isDark ? AppColors.grey : AppColors.lightGrey,
+                    ),
+                  ),
+                  _SettingsDivider(isDark: isDark),
+                  _SettingsRow(
+                    icon: PlatformHelper.isApple
+                        ? CupertinoIcons.trash
+                        : Icons.delete_outline,
+                    title: 'Borrar todos los datos',
+                    subtitle: 'Esta acción no se puede deshacer',
+                    isDark: isDark,
+                    titleColor: AppColors.expense,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // ── Cerrar Sesión ──
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () {
+                    ref.read(authProvider.notifier).signOut();
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.expense,
+                    side: BorderSide(color: AppColors.expense.withValues(alpha: 0.3)),
+                  ),
+                  child: const Text('Cerrar sesión'),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Versión ──
+              Center(
+                child: Text(
+                  'Betty v1.0.0',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.grey : AppColors.lightGrey,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// Widgets auxiliares de settings
+// ══════════════════════════════════════════════════════════
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final bool isDark;
+
+  const _SectionHeader({required this.title, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+}
+
+class _SettingsCard extends StatelessWidget {
+  final bool isDark;
+  final List<Widget> children;
+
+  const _SettingsCard({required this.isDark, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _SettingsRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool isDark;
+  final Widget? trailing;
+  final Color? titleColor;
+
+  const _SettingsRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.isDark,
+    this.trailing,
+    this.titleColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: isDark
+                  ? AppColors.grey.withValues(alpha: 0.15)
+                  : AppColors.offWhite,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 18,
+              color: titleColor ??
+                  (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: titleColor ??
+                        (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsDivider extends StatelessWidget {
+  final bool isDark;
+
+  const _SettingsDivider({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 0.5,
+      indent: 64,
+      color: isDark
+          ? AppColors.grey.withValues(alpha: 0.15)
+          : AppColors.lightGrey.withValues(alpha: 0.3),
     );
   }
 }

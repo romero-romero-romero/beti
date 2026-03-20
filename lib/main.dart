@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:betty_app/core/database/isar_instance.dart';
 import 'package:betty_app/app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 0. Inicializar datos de locale para DateFormat('es_MX')
+  await initializeDateFormatting('es_MX', null);
 
   // 1. Cargar variables de entorno
   await dotenv.load(fileName: '.env');
