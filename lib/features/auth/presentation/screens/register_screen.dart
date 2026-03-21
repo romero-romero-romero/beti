@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:betty_app/core/constants/app_strings.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -77,6 +78,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         );
         context.goNamed('login');
+      }
+      if (next is AuthAuthenticated && previous is! AuthAuthenticated) {
+        ref.read(syncProvider.notifier).initialPull();
       }
     });
 

@@ -275,6 +275,9 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
 
     ref.invalidate(healthProvider);
     state = AsyncData(await _load());
+
+    // Push inmediato para que otros dispositivos reciban el cambio
+    ref.read(syncProvider.notifier).pushNow();
   }
 
   Future<void> deleteCard(String uuid) async {
@@ -297,6 +300,7 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
 
     ref.invalidate(healthProvider);
     state = AsyncData(await _load());
+    ref.read(syncProvider.notifier).pushNow();
   }
 
   Future<void> refresh() async {
@@ -403,6 +407,7 @@ class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
 
     ref.invalidate(healthProvider);
     state = AsyncData(await _load());
+    ref.read(syncProvider.notifier).pushNow();
   }
 
   Future<void> deleteCredit(String uuid) async {
@@ -425,6 +430,7 @@ class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
 
     ref.invalidate(healthProvider);
     state = AsyncData(await _load());
+    ref.read(syncProvider.notifier).pushNow();
   }
 
   Future<void> refresh() async {
