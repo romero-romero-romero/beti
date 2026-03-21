@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:betty_app/core/enums/input_method.dart';
 import 'package:betty_app/features/input_capture/presentation/providers/input_capture_provider.dart';
+import 'package:betty_app/features/intelligence/data/datasources/nlp_entity_extractor.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
 
 /// Pantalla de captura por voz.
@@ -48,23 +50,32 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen>
   void _processResult(String text) {
     if (text.trim().isEmpty) return;
 
-    // Parsear el texto dictado y poblar el formulario
-    final parsed = _parseVoiceInput(text);
+    // Extraer entidades con el NLP centralizado
+    final result = NlpEntityExtractor.extract(text);
 
     final formNotifier = ref.read(transactionFormProvider.notifier);
     formNotifier.reset();
 
-    if (parsed.amount != null) {
-      formNotifier.updateAmount(parsed.amount!);
+    if (result.amount != null) {
+      formNotifier.updateAmount(result.amount!);
     }
 
-    formNotifier.updateDescription(parsed.description);
+    formNotifier.updateType(result.type);
+    formNotifier.updateDescription(result.description);
+
+    if (result.categoryAutoAssigned) {
+      formNotifier.updateCategory(result.category);
+    }
+
+    if (result.date != null) {
+      formNotifier.updateDate(result.date!);
+    }
 
     // Marcar como input por voz
-    final current = ref.read(transactionFormProvider);
-    ref.read(transactionFormProvider.notifier).updateDescription(
-      current.description,
-    );
+    ref.read(transactionFormProvider.notifier).updateInputMethod(InputMethod.voice);
+
+    // Guardar texto crudo para referencia
+    ref.read(transactionFormProvider.notifier).updateRawInput(text);
 
     // Navegar a Vista Previa
     context.goNamed('addTransaction');
@@ -119,7 +130,7 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Ejemplo: "Cien pesos en Uber al trabajo"',
+                    'Ejemplo: "Compré quinientos pesos de tacos"',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: Colors.grey,
                       fontStyle: FontStyle.italic,
@@ -232,55 +243,4 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen>
       ),
     );
   }
-
-  /// Parsea texto dictado para extraer monto y descripción.
-  /// Ejemplo: "Cien pesos en Uber" → amount: 100, description: "Uber"
-  _VoiceParsed _parseVoiceInput(String text) {
-    final normalized = text.toLowerCase().trim();
-
-    // Intentar extraer monto numérico: "150 pesos en uber"
-    final numericPattern = RegExp(r'(\d+(?:\.\d+)?)\s*(?:pesos|varos|bolas)?(?:\s+(?:en|de|por|para)\s+)?(.*)');
-    final numMatch = numericPattern.firstMatch(normalized);
-    if (numMatch != null) {
-      final amount = double.tryParse(numMatch.group(1) ?? '');
-      final desc = numMatch.group(2)?.trim() ?? text;
-      return _VoiceParsed(amount: amount, description: desc.isNotEmpty ? desc : text);
-    }
-
-    // Mapa de números en texto español
-    const wordToNumber = {
-      'un': 1.0, 'uno': 1.0, 'una': 1.0,
-      'dos': 2.0, 'tres': 3.0, 'cuatro': 4.0, 'cinco': 5.0,
-      'seis': 6.0, 'siete': 7.0, 'ocho': 8.0, 'nueve': 9.0,
-      'diez': 10.0, 'veinte': 20.0, 'treinta': 30.0, 'cuarenta': 40.0,
-      'cincuenta': 50.0, 'sesenta': 60.0, 'setenta': 70.0,
-      'ochenta': 80.0, 'noventa': 90.0, 'cien': 100.0, 'ciento': 100.0,
-      'doscientos': 200.0, 'trescientos': 300.0, 'quinientos': 500.0,
-      'mil': 1000.0,
-    };
-
-    // Buscar palabras numéricas
-    final words = normalized.split(RegExp(r'\s+'));
-    for (int i = 0; i < words.length; i++) {
-      if (wordToNumber.containsKey(words[i])) {
-        final amount = wordToNumber[words[i]];
-        // Buscar el resto como descripción
-        final descWords = words.sublist(i + 1).where((w) =>
-            w != 'pesos' && w != 'varos' && w != 'en' && w != 'de' && w != 'por' && w != 'para'
-        ).toList();
-        final desc = descWords.isNotEmpty ? descWords.join(' ') : text;
-        return _VoiceParsed(amount: amount, description: desc);
-      }
-    }
-
-    // No se detectó monto, devolver todo como descripción
-    return _VoiceParsed(description: text);
-  }
-}
-
-class _VoiceParsed {
-  final double? amount;
-  final String description;
-
-  _VoiceParsed({this.amount, required this.description});
 }

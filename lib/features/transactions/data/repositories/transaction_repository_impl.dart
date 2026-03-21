@@ -1,7 +1,6 @@
 import 'dart:convert';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/enums/input_method.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
+import 'package:betty_app/core/enums/sync_status.dart';
+import 'package:betty_app/core/mappers/enum_mapper.dart';
 import 'package:betty_app/core/utils/uuid_generator.dart';
 import 'package:betty_app/features/auth/data/datasources/auth_local_ds.dart';
 import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
@@ -38,7 +37,6 @@ class TransactionRepositoryImpl implements TransactionRepository {
     final model = _entityToModel(entity, uid, now, isNew);
     await _localDs.save(model);
 
-    // Encolar para sync
     await _syncRepo.enqueueChange(
       userId: uid,
       targetCollection: 'transactions',
@@ -100,7 +98,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
     return models.map(_modelToEntity).toList();
   }
 
-  // ── Mappers ──
+  // ── Mappers (usan enum_mapper centralizado) ──
 
   TransactionModel _entityToModel(
     TransactionEntity e,
@@ -111,12 +109,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
     return TransactionModel()
       ..uuid = e.uuid.isEmpty ? UuidGenerator.generate() : e.uuid
       ..userId = userId
-      ..type = TxType.values.byName(e.type.name)
+      ..type = e.type.toIsar()
       ..amount = e.amount
       ..description = e.description
-      ..category = TxCategory.values.byName(e.category.name)
+      ..category = e.category.toIsar()
       ..categoryAutoAssigned = e.categoryAutoAssigned
-      ..inputMethod = TxInputMethod.values.byName(e.inputMethod.name)
+      ..inputMethod = e.inputMethod.toIsar()
       ..transactionDate = e.transactionDate
       ..createdAt = isNew ? now : e.createdAt
       ..updatedAt = now
@@ -124,7 +122,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       ..rawInputText = e.rawInputText
       ..creditCardUuid = e.creditCardUuid
       ..notes = e.notes
-      ..syncStatus = TxSyncStatus.pending
+      ..syncStatus = SyncStatus.pending.toTxIsar()
       ..isDeleted = e.isDeleted;
   }
 
@@ -132,12 +130,12 @@ class TransactionRepositoryImpl implements TransactionRepository {
     return TransactionEntity(
       uuid: m.uuid,
       userId: m.userId,
-      type: TransactionType.values.byName(m.type.name),
+      type: m.type.toCanonical(),
       amount: m.amount,
       description: m.description,
-      category: CategoryType.values.byName(m.category.name),
+      category: m.category.toCanonical(),
       categoryAutoAssigned: m.categoryAutoAssigned,
-      inputMethod: InputMethod.values.byName(m.inputMethod.name),
+      inputMethod: m.inputMethod.toCanonical(),
       transactionDate: m.transactionDate,
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,

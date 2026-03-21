@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:betty_app/core/enums/input_method.dart';
 import 'package:betty_app/features/input_capture/presentation/providers/input_capture_provider.dart';
+import 'package:betty_app/features/intelligence/data/datasources/nlp_entity_extractor.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
 
 /// Pantalla de captura por foto de ticket (OCR).
@@ -49,21 +51,41 @@ class _OcrCaptureScreenState extends ConsumerState<OcrCaptureScreen> {
     final ocr = ref.read(ocrProvider);
     if (ocr.result == null) return;
 
-    final result = ocr.result!;
+    final ocrResult = ocr.result!;
+
+    // Pasar datos del OCR por el NLP centralizado para categorización
+    final nlp = NlpEntityExtractor.extractFromOcr(
+      rawText: ocrResult.rawText,
+      amount: ocrResult.amount,
+      date: ocrResult.date,
+      concept: ocrResult.concept,
+    );
+
     final formNotifier = ref.read(transactionFormProvider.notifier);
     formNotifier.reset();
 
-    if (result.amount != null) {
-      formNotifier.updateAmount(result.amount!);
+    if (nlp.amount != null) {
+      formNotifier.updateAmount(nlp.amount!);
     }
 
-    if (result.date != null) {
-      formNotifier.updateDate(result.date!);
+    if (nlp.date != null) {
+      formNotifier.updateDate(nlp.date!);
     }
 
-    final description = result.concept ?? '';
-    if (description.isNotEmpty) {
-      formNotifier.updateDescription(description);
+    formNotifier.updateType(nlp.type);
+    formNotifier.updateDescription(nlp.description);
+
+    if (nlp.categoryAutoAssigned) {
+      formNotifier.updateCategory(nlp.category);
+    }
+
+    // Marcar como input por OCR
+    formNotifier.updateInputMethod(InputMethod.ocr);
+    formNotifier.updateRawInput(ocrResult.rawText);
+
+    // Guardar path de la imagen para referencia
+    if (_selectedImage != null) {
+      formNotifier.updateTicketImage(_selectedImage!.path);
     }
 
     // Navegar al formulario para que el usuario complete/corrija

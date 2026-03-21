@@ -7,6 +7,7 @@ import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/router/app_router.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:betty_app/features/intelligence/presentation/providers/category_learning_provider.dart';
 
 /// Root widget de Betty.
 ///
@@ -45,6 +46,7 @@ class _BettyAppState extends ConsumerState<BettyApp> {
       if (next is AuthAuthenticated && !_syncInitialized) {
         _syncInitialized = true;
         ref.read(syncProvider.notifier).initialPull();
+        ref.read(categoryLearningProvider);
       }
     });
 
