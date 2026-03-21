@@ -16,6 +16,8 @@ class RealtimeService {
 
   RealtimeChannel? _channel;
   bool _isSubscribed = false;
+  VoidCallback? _onDataChanged;
+  String? _currentUserId;
 
   /// Tablas a escuchar (las mismas que habilitamos en supabase_realtime).
   static const _tables = [
@@ -35,9 +37,22 @@ class RealtimeService {
         _mergeService = mergeService;
 
   /// Inicia la suscripción a cambios en tiempo real.
-  /// Llamar después del login exitoso.
-  void subscribe(String userId) {
+  /// [onDataChanged] se llama después de cada merge exitoso para refrescar la UI.
+  void subscribe(String userId, {VoidCallback? onDataChanged}) {
     if (_isSubscribed) return;
+    _onDataChanged = onDataChanged;
+    _currentUserId = userId;
+    _setupChannel(userId);
+  }
+
+  /// Configura y suscribe el canal de Realtime.
+  /// Se llama desde subscribe() y desde la auto-reconexión.
+  void _setupChannel(String userId) {
+    // Limpiar canal anterior si existe
+    if (_channel != null) {
+      _client.removeChannel(_channel!);
+      _channel = null;
+    }
 
     _channel = _client.channel('betty-sync-$userId');
 
@@ -61,7 +76,12 @@ class RealtimeService {
         debugPrint('Realtime: suscrito a cambios del usuario');
       } else if (status == RealtimeSubscribeStatus.closed) {
         _isSubscribed = false;
-        debugPrint('Realtime: canal cerrado');
+        debugPrint('Realtime: canal cerrado — reconectando en 3s...');
+        Future.delayed(const Duration(seconds: 3), () {
+          if (_currentUserId != null && !_isSubscribed) {
+            _setupChannel(_currentUserId!);
+          }
+        });
       } else if (error != null) {
         debugPrint('Realtime: error → $error');
       }
@@ -90,6 +110,7 @@ class RealtimeService {
       await _mergeService.mergeAll({
         table: [newRecord],
       });
+      _onDataChanged?.call();
     } catch (e) {
       debugPrint('Realtime: error procesando cambio en $table → $e');
     }
@@ -107,8 +128,6 @@ class RealtimeService {
 
     debugPrint('Realtime [$table]: delete → $uuid');
 
-    // Para transactions usamos soft-delete (is_deleted = true).
-    // Para otras tablas, el merge ya maneja la lógica de actualización.
     if (table == 'transactions') {
       await _mergeService.mergeAll({
         'transactions': [
@@ -120,13 +139,12 @@ class RealtimeService {
         ],
       });
     }
-    // Otras tablas: el registro se eliminó del servidor.
-    // En Isar lo marcamos como no activo si tiene ese campo.
-    // Por ahora no eliminamos físicamente — el delta pull lo resolverá.
+    _onDataChanged?.call();
   }
 
   /// Detiene la suscripción. Llamar al hacer logout.
   Future<void> unsubscribe() async {
+    _currentUserId = null;
     if (_channel != null) {
       await _client.removeChannel(_channel!);
       _channel = null;

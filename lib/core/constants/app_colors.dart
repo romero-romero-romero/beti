@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:betty_app/core/enums/health_level.dart';
 
 /// Paleta de colores emocional de Betty.

@@ -139,8 +139,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty)
+                      if (value == null || value.trim().isEmpty) {
                         return 'Ingresa tu correo';
+                      }
                       if (!RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,4}$')
                           .hasMatch(value.trim())) {
                         return 'Formato de correo inválido';
@@ -167,8 +168,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Ingresa tu contraseña';
+                      }
                       if (value.length < 6) return 'Mínimo 6 caracteres';
                       return null;
                     },
@@ -192,8 +194,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Confirma tu contraseña';
+                      }
                       if (value != _passwordController.text) {
                         return 'Las contraseñas no coinciden';
                       }
