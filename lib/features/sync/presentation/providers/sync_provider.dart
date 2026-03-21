@@ -117,8 +117,9 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
     return null;
   }
 
-  /// Sync completo: pull primero, luego push.
-  /// Pull primero para que si hay conflictos, los resolvamos antes de pushear.
+  /// Sync completo: push primero, luego pull.
+  /// Push primero para que nuestros cambios locales lleguen al servidor
+  /// antes de que el otro dispositivo haga su pull.
   Future<void> _triggerFullSync() async {
     if (_isSyncing) return;
 
@@ -132,13 +133,13 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
     _isSyncing = true;
 
     try {
-      // 1. PULL
-      state = SyncState.pulling;
-      await _executePull(userId);
-
-      // 2. PUSH
+      // 1. PUSH primero (para que otros dispositivos vean nuestros cambios)
       state = SyncState.pushing;
       await _executePush();
+
+      // 2. PULL después (para recibir cambios de otros dispositivos)
+      state = SyncState.pulling;
+      await _executePull(userId);
 
       // 3. Refrescar UI con datos nuevos del pull
       _refreshUI();
@@ -209,6 +210,9 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
   }
 
   /// Pull incremental (delta): solo cambios desde la última descarga.
+  /// Resta 30 segundos al lastPullAt como margen de seguridad para no
+  /// perder registros que se crearon justo en el límite del timestamp.
+  /// El merge descarta duplicados automáticamente.
   Future<void> _executePull(String userId) async {
     final lastPull = await _getLastPullAt();
 
@@ -217,10 +221,11 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
       final remoteData = await _pullDs.pullAll(userId);
       await _mergeService.mergeAll(remoteData);
     } else {
-      // Delta pull: solo cambios recientes
+      // Delta pull con margen de seguridad de 30 segundos
+      final safeLastPull = lastPull.subtract(const Duration(seconds: 30));
       final remoteData = await _pullDs.pullDelta(
         userId: userId,
-        since: lastPull,
+        since: safeLastPull,
       );
       await _mergeService.mergeAll(remoteData);
     }
