@@ -244,6 +244,21 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
     await _triggerFullSync();
   }
 
+  /// Push inmediato: procesa la cola sin hacer pull.
+  /// Llamar después de cada escritura local (addCard, addTransaction, etc.)
+  /// para que los datos lleguen al servidor sin esperar al ciclo de resumed.
+  Future<void> pushNow() async {
+    final connectivity = _ref.read(hasInternetProvider);
+    final hasInternet = connectivity.valueOrNull ?? false;
+    if (!hasInternet) return;
+
+    try {
+      await _executePush();
+    } catch (e) {
+      debugPrint('pushNow error: $e');
+    }
+  }
+
   // ── SharedPreferences para lastPullAt ──
 
   Future<DateTime?> _getLastPullAt() async {
