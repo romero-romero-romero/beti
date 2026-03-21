@@ -29,11 +29,14 @@ class SyncPullDataSource {
 
     for (final table in _tables) {
       try {
+        final timeColumn =
+            table == 'health_snapshots' ? 'created_at' : 'updated_at';
+
         final data = await _client
             .from(table)
             .select()
             .eq('user_id', userId)
-            .order('updated_at', ascending: false);
+            .order(timeColumn, ascending: false);
 
         result[table] = List<Map<String, dynamic>>.from(data);
         debugPrint('SyncPull: $table → ${result[table]!.length} registros');

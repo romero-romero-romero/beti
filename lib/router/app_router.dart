@@ -8,6 +8,7 @@ import 'package:betty_app/features/transactions/presentation/screens/add_transac
 import 'package:betty_app/features/transactions/presentation/screens/preview_correction_screen.dart';
 import 'package:betty_app/features/input_capture/presentation/screens/voice_capture_screen.dart';
 import 'package:betty_app/features/input_capture/presentation/screens/ocr_capture_screen.dart';
+import 'package:betty_app/features/cards_credits/presentation/screens/add_card_screen.dart';
 
 /// Provider de GoRouter que reacciona al estado de autenticación.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -65,6 +66,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/ocr-capture',
         name: 'ocrCapture',
         builder: (context, state) => const OcrCaptureScreen(),
+      ),
+      GoRoute(
+        path: '/add-card',
+        name: 'addCard',
+        builder: (context, state) => const AddCardScreen(),
       ),
     ],
   );

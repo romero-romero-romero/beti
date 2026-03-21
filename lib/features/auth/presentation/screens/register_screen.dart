@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:betty_app/core/constants/app_strings.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -79,9 +78,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
         context.goNamed('login');
       }
-      if (next is AuthAuthenticated && previous is! AuthAuthenticated) {
-        ref.read(syncProvider.notifier).initialPull();
-      }
     });
 
     final size = MediaQuery.of(context).size;
@@ -139,8 +135,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty)
+                      if (value == null || value.trim().isEmpty) {
                         return 'Ingresa tu correo';
+                      }
                       if (!RegExp(r'^[\w\-.]+@([\w\-]+\.)+[\w\-]{2,4}$')
                           .hasMatch(value.trim())) {
                         return 'Formato de correo inválido';
@@ -167,8 +164,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Ingresa tu contraseña';
+                      }
                       if (value.length < 6) return 'Mínimo 6 caracteres';
                       return null;
                     },
@@ -192,8 +190,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty)
+                      if (value == null || value.isEmpty) {
                         return 'Confirma tu contraseña';
+                      }
                       if (value != _passwordController.text) {
                         return 'Las contraseñas no coinciden';
                       }

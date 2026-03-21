@@ -11,6 +11,10 @@ import 'package:betty_app/features/sync/data/repositories/sync_repository_impl.d
 import 'package:betty_app/features/sync/data/services/sync_merge_service.dart';
 import 'package:betty_app/features/sync/data/services/realtime_service.dart';
 import 'package:betty_app/features/sync/domain/repositories/sync_repository.dart';
+import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
 
 // ── Dependency Injection ──
 
@@ -136,6 +140,9 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
       state = SyncState.pushing;
       await _executePush();
 
+      // 3. Refrescar UI con datos nuevos del pull
+      _refreshUI();
+
       state = SyncState.completed;
       _ref.invalidate(pendingSyncCountProvider);
     } catch (e) {
@@ -173,7 +180,10 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
       await _saveLastPullAt(DateTime.now().toUtc());
 
       // Iniciar escucha en tiempo real para multi-dispositivo
-      _realtimeService.subscribe(userId);
+      _realtimeService.subscribe(userId, onDataChanged: _refreshUI);
+
+      // Refrescar UI con datos descargados
+      _refreshUI();
 
       state = SyncState.completed;
     } catch (e) {
@@ -184,6 +194,18 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
       await Future.delayed(const Duration(seconds: 1));
       if (mounted) state = SyncState.idle;
     }
+  }
+
+  /// Invalida todos los providers de datos para que la UI recargue desde Isar.
+  /// Se llama después de cada pull exitoso (initial o delta).
+  void _refreshUI() {
+    _ref.invalidate(transactionsProvider);
+    _ref.invalidate(healthProvider);
+    _ref.invalidate(budgetsProvider);
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(creditCardsProvider);
+    _ref.invalidate(creditsProvider);
+    _ref.invalidate(pendingSyncCountProvider);
   }
 
   /// Pull incremental (delta): solo cambios desde la última descarga.

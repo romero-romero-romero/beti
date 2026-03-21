@@ -22,6 +22,8 @@ class BettyApp extends ConsumerStatefulWidget {
 }
 
 class _BettyAppState extends ConsumerState<BettyApp> {
+  bool _syncInitialized = false;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +39,15 @@ class _BettyAppState extends ConsumerState<BettyApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
 
+    // Escuchar cambios de auth para disparar sync en cualquier transición
+    // a AuthAuthenticated (login fresco O restauración de sesión desde Isar)
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next is AuthAuthenticated && !_syncInitialized) {
+        _syncInitialized = true;
+        ref.read(syncProvider.notifier).initialPull();
+      }
+    });
+
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: AppStrings.appName,
@@ -44,8 +55,6 @@ class _BettyAppState extends ConsumerState<BettyApp> {
       darkTheme: AppTheme.dark,
       themeMode: ThemeMode.system,
       routerConfig: router,
-      // builder se ejecuta DESPUÉS de que MaterialApp construyó su Theme,
-      // así que Theme.of(context) ya funciona aquí.
       builder: (context, child) {
         if (!PlatformHelper.isApple) return child!;
 

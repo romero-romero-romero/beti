@@ -16,6 +16,7 @@ class RealtimeService {
 
   RealtimeChannel? _channel;
   bool _isSubscribed = false;
+  VoidCallback? _onDataChanged;
 
   /// Tablas a escuchar (las mismas que habilitamos en supabase_realtime).
   static const _tables = [
@@ -35,9 +36,10 @@ class RealtimeService {
         _mergeService = mergeService;
 
   /// Inicia la suscripción a cambios en tiempo real.
-  /// Llamar después del login exitoso.
-  void subscribe(String userId) {
+  /// [onDataChanged] se llama después de cada merge exitoso para refrescar la UI.
+  void subscribe(String userId, {VoidCallback? onDataChanged}) {
     if (_isSubscribed) return;
+    _onDataChanged = onDataChanged;
 
     _channel = _client.channel('betty-sync-$userId');
 
@@ -73,6 +75,7 @@ class RealtimeService {
     String table,
     PostgresChangePayload payload,
   ) async {
+    debugPrint('REALTIME RECEIVED: $table → ${payload.eventType.name}');
     try {
       final eventType = payload.eventType;
 
@@ -90,6 +93,7 @@ class RealtimeService {
       await _mergeService.mergeAll({
         table: [newRecord],
       });
+      _onDataChanged?.call();
     } catch (e) {
       debugPrint('Realtime: error procesando cambio en $table → $e');
     }
