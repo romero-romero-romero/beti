@@ -5,6 +5,7 @@ import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/core/enums/transaction_type.dart';
 import 'package:betty_app/core/utils/currency_formatter.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:betty_app/features/intelligence/presentation/providers/category_learning_provider.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
 
 /// Pantalla de Vista Previa obligatoria.
@@ -21,6 +22,16 @@ class PreviewCorrectionScreen extends ConsumerStatefulWidget {
 class _PreviewCorrectionScreenState
     extends ConsumerState<PreviewCorrectionScreen> {
   bool _saving = false;
+  CategoryType? _originalCategory;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final draft = ref.read(transactionFormProvider);
+      _originalCategory = draft.category;
+    });
+  }
 
   Future<void> _confirm() async {
     setState(() => _saving = true);
@@ -30,6 +41,18 @@ class _PreviewCorrectionScreenState
       final userId = authState is AuthAuthenticated
           ? authState.user.supabaseId
           : '';
+
+      // Feedback loop: si el usuario corrigió la categoría, aprender
+      final currentDraft = ref.read(transactionFormProvider);
+      if (_originalCategory != null &&
+          _originalCategory != currentDraft.category) {
+        await learnCategoryCorrection(
+          ref,
+          description: currentDraft.description,
+          originalCategory: _originalCategory!,
+          correctedCategory: currentDraft.category,
+        );
+      }
 
       final entity = ref
           .read(transactionFormProvider.notifier)
@@ -44,7 +67,6 @@ class _PreviewCorrectionScreenState
             backgroundColor: Colors.green,
           ),
         );
-        // Volver al home (pop dos veces: preview → add → home)
         context.go('/home');
       }
     } catch (e) {
@@ -267,7 +289,9 @@ class _DetailRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+              Text(label,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: Colors.grey)),
               const SizedBox(height: 2),
               Text(value, style: theme.textTheme.bodyLarge),
             ],

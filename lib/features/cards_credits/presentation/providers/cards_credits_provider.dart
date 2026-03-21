@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'package:isar/isar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:betty_app/core/enums/sync_status.dart';
+import 'package:betty_app/core/mappers/enum_mapper.dart';
 import 'package:betty_app/core/providers/core_providers.dart';
 import 'package:betty_app/core/utils/uuid_generator.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:betty_app/features/cards_credits/data/models/credit_card_model.dart';
 import 'package:betty_app/features/cards_credits/data/models/credit_model.dart';
+import 'package:betty_app/features/cards_credits/domain/entities/credit_card_entity.dart';
+import 'package:betty_app/features/cards_credits/domain/entities/credit_entity.dart';
 import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
 import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
 import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
@@ -85,6 +89,13 @@ class CreditLocalDataSource {
         .findAll();
   }
 
+  Future<CreditModel?> getByUuid(String uuid) async {
+    return await _isar.creditModels
+        .filter()
+        .uuidEqualTo(uuid)
+        .findFirst();
+  }
+
   Future<void> deactivate(String uuid) async {
     await _isar.writeTxn(() async {
       final credit = await _isar.creditModels
@@ -114,107 +125,224 @@ final creditLocalDsProvider = Provider<CreditLocalDataSource>((ref) {
 });
 
 // ─────────────────────────────────────────────────────────
-// Entities (para la UI)
+// Mappers Isar ↔ Entity (usan enum_mapper centralizado)
 // ─────────────────────────────────────────────────────────
 
-class CreditCardEntity {
-  final String uuid;
-  final String name;
-  final String? lastFourDigits;
-  final String network;
-  final double creditLimit;
-  final double currentBalance;
-  final double availableCredit;
-  final int cutOffDay;
-  final int paymentDueDay;
-  final double? interestRate;
-  final bool alertsEnabled;
-  final bool isActive;
-
-  const CreditCardEntity({
-    required this.uuid,
-    required this.name,
-    this.lastFourDigits,
-    required this.network,
-    required this.creditLimit,
-    required this.currentBalance,
-    required this.availableCredit,
-    required this.cutOffDay,
-    required this.paymentDueDay,
-    this.interestRate,
-    this.alertsEnabled = true,
-    this.isActive = true,
-  });
-
-  double get utilizationPercent =>
-      creditLimit > 0 ? (currentBalance / creditLimit * 100) : 0;
+CreditCardEntity _cardModelToEntity(CreditCardModel m) {
+  return CreditCardEntity(
+    uuid: m.uuid,
+    userId: m.userId,
+    name: m.name,
+    lastFourDigits: m.lastFourDigits,
+    network: m.network.toCanonical(),
+    creditLimit: m.creditLimit,
+    currentBalance: m.currentBalance,
+    availableCredit: m.availableCredit,
+    cutOffDay: m.cutOffDay,
+    paymentDueDay: m.paymentDueDay,
+    nextCutOffDate: m.nextCutOffDate,
+    nextPaymentDueDate: m.nextPaymentDueDate,
+    alertsEnabled: m.alertsEnabled,
+    isActive: m.isActive,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+    syncStatus: m.syncStatus.toCanonical(),
+  );
 }
 
-class CreditEntity {
-  final String uuid;
-  final String name;
-  final String? institution;
-  final double originalAmount;
-  final double currentBalance;
-  final double? interestRate;
-  final double monthlyPayment;
-  final int paymentDay;
-  final int? totalInstallments;
-  final int? paidInstallments;
-  final bool alertsEnabled;
+CreditCardModel _cardEntityToModel(
+  CreditCardEntity e,
+  String userId,
+  DateTime now,
+  bool isNew,
+) {
+  return CreditCardModel()
+    ..uuid = e.uuid.isEmpty ? UuidGenerator.generate() : e.uuid
+    ..userId = userId
+    ..name = e.name
+    ..lastFourDigits = e.lastFourDigits
+    ..network = e.network.toIsar()
+    ..creditLimit = e.creditLimit
+    ..currentBalance = e.currentBalance
+    ..availableCredit = e.availableCredit
+    ..cutOffDay = e.cutOffDay
+    ..paymentDueDay = e.paymentDueDay
+    ..nextCutOffDate = e.nextCutOffDate
+    ..nextPaymentDueDate = e.nextPaymentDueDate
+    ..alertsEnabled = e.alertsEnabled
+    ..isActive = e.isActive
+    ..createdAt = isNew ? now : e.createdAt
+    ..updatedAt = now
+    ..syncStatus = SyncStatus.pending.toCcIsar();
+}
 
-  const CreditEntity({
-    required this.uuid,
-    required this.name,
-    this.institution,
-    required this.originalAmount,
-    required this.currentBalance,
-    this.interestRate,
-    required this.monthlyPayment,
-    required this.paymentDay,
-    this.totalInstallments,
-    this.paidInstallments,
-    this.alertsEnabled = true,
+String _cardModelToJson(CreditCardModel m) {
+  return jsonEncode({
+    'uuid': m.uuid,
+    'user_id': m.userId,
+    'name': m.name,
+    'last_four_digits': m.lastFourDigits,
+    'network': m.network.name,
+    'credit_limit': m.creditLimit,
+    'current_balance': m.currentBalance,
+    'available_credit': m.availableCredit,
+    'cut_off_day': m.cutOffDay,
+    'payment_due_day': m.paymentDueDay,
+    'next_cut_off_date': m.nextCutOffDate?.toIso8601String(),
+    'next_payment_due_date': m.nextPaymentDueDate?.toIso8601String(),
+    'alerts_enabled': m.alertsEnabled,
+    'is_active': m.isActive,
+    'created_at': m.createdAt.toIso8601String(),
+    'updated_at': m.updatedAt.toIso8601String(),
   });
+}
 
-  double get progressPercent =>
-      originalAmount > 0
-          ? ((originalAmount - currentBalance) / originalAmount * 100)
-          : 0;
+CreditEntity _creditModelToEntity(CreditModel m) {
+  return CreditEntity(
+    uuid: m.uuid,
+    userId: m.userId,
+    name: m.name,
+    institution: m.institution,
+    originalAmount: m.originalAmount,
+    currentBalance: m.currentBalance,
+    interestRate: m.interestRate,
+    monthlyPayment: m.monthlyPayment,
+    paymentDay: m.paymentDay,
+    nextPaymentDate: m.nextPaymentDate,
+    startDate: m.startDate,
+    endDate: m.endDate,
+    totalInstallments: m.totalInstallments,
+    paidInstallments: m.paidInstallments,
+    alertsEnabled: m.alertsEnabled,
+    isActive: m.isActive,
+    createdAt: m.createdAt,
+    updatedAt: m.updatedAt,
+    syncStatus: m.syncStatus.toCanonical(),
+  );
+}
+
+CreditModel _creditEntityToModel(
+  CreditEntity e,
+  String userId,
+  DateTime now,
+  bool isNew,
+) {
+  return CreditModel()
+    ..uuid = e.uuid.isEmpty ? UuidGenerator.generate() : e.uuid
+    ..userId = userId
+    ..name = e.name
+    ..institution = e.institution
+    ..originalAmount = e.originalAmount
+    ..currentBalance = e.currentBalance
+    ..interestRate = e.interestRate
+    ..monthlyPayment = e.monthlyPayment
+    ..paymentDay = e.paymentDay
+    ..nextPaymentDate = e.nextPaymentDate
+    ..startDate = e.startDate
+    ..endDate = e.endDate
+    ..totalInstallments = e.totalInstallments
+    ..paidInstallments = e.paidInstallments
+    ..alertsEnabled = e.alertsEnabled
+    ..isActive = e.isActive
+    ..createdAt = isNew ? now : e.createdAt
+    ..updatedAt = now
+    ..syncStatus = SyncStatus.pending.toCreditIsar();
+}
+
+String _creditModelToJson(CreditModel m) {
+  return jsonEncode({
+    'uuid': m.uuid,
+    'user_id': m.userId,
+    'name': m.name,
+    'institution': m.institution,
+    'original_amount': m.originalAmount,
+    'current_balance': m.currentBalance,
+    'interest_rate': m.interestRate,
+    'monthly_payment': m.monthlyPayment,
+    'payment_day': m.paymentDay,
+    'next_payment_date': m.nextPaymentDate?.toIso8601String(),
+    'start_date': m.startDate?.toIso8601String(),
+    'end_date': m.endDate?.toIso8601String(),
+    'total_installments': m.totalInstallments,
+    'paid_installments': m.paidInstallments,
+    'alerts_enabled': m.alertsEnabled,
+    'is_active': m.isActive,
+    'created_at': m.createdAt.toIso8601String(),
+    'updated_at': m.updatedAt.toIso8601String(),
+  });
 }
 
 // ─────────────────────────────────────────────────────────
-// Credit Cards Notifier
+// Credit Cards Provider
 // ─────────────────────────────────────────────────────────
+
+final creditCardsProvider =
+    AsyncNotifierProvider<CreditCardsNotifier, List<CreditCardEntity>>(
+  CreditCardsNotifier.new,
+);
 
 class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
   @override
-  Future<List<CreditCardEntity>> build() async => _load();
+  Future<List<CreditCardEntity>> build() async {
+    final authState = ref.watch(authProvider);
+    if (authState is! AuthAuthenticated) return [];
 
-  Future<List<CreditCardEntity>> _load() async {
-    final auth = ref.read(authProvider);
-    if (auth is! AuthAuthenticated) return [];
     final models = await ref
-        .read(creditCardLocalDsProvider)
-        .getAllActive(auth.user.supabaseId);
-    return models.map(_toEntity).toList();
+        .watch(creditCardLocalDsProvider)
+        .getAllActive(authState.user.supabaseId);
+    return models.map(_cardModelToEntity).toList();
   }
 
-  CreditCardEntity _toEntity(CreditCardModel m) => CreditCardEntity(
-        uuid: m.uuid,
-        name: m.name,
-        lastFourDigits: m.lastFourDigits,
-        network: m.network.name,
-        creditLimit: m.creditLimit,
-        currentBalance: m.currentBalance,
-        availableCredit: m.availableCredit,
-        cutOffDay: m.cutOffDay,
-        paymentDueDay: m.paymentDueDay,
-        interestRate: (m.syncStatus == CcSyncStatus.pending) ? null : null,
-        alertsEnabled: m.alertsEnabled,
-        isActive: m.isActive,
-      );
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = AsyncData(await build());
+  }
 
+  Future<void> save(CreditCardEntity entity) async {
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
+
+    final uid = authState.user.supabaseId;
+    final ds = ref.read(creditCardLocalDsProvider);
+    final isNew = (await ds.getByUuid(entity.uuid)) == null;
+    final now = DateTime.now();
+
+    final model = _cardEntityToModel(entity, uid, now, isNew);
+    await ds.save(model);
+
+    await ref.read(syncRepositoryProvider).enqueueChange(
+          userId: uid,
+          targetCollection: 'credit_cards',
+          targetUuid: model.uuid,
+          operation: isNew ? SyncOperation.create : SyncOperation.update,
+          payload: _cardModelToJson(model),
+        );
+
+    ref.invalidate(healthProvider);
+    await refresh();
+  }
+
+  Future<void> deactivate(String uuid) async {
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
+
+    await ref.read(creditCardLocalDsProvider).deactivate(uuid);
+
+    await ref.read(syncRepositoryProvider).enqueueChange(
+          userId: authState.user.supabaseId,
+          targetCollection: 'credit_cards',
+          targetUuid: uuid,
+          operation: SyncOperation.update,
+          payload: jsonEncode({
+            'uuid': uuid,
+            'is_active': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          }),
+        );
+
+    ref.invalidate(healthProvider);
+    await refresh();
+  }
   Future<void> addCard({
     required String name,
     String? lastFourDigits,
@@ -224,16 +352,17 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
     required int cutOffDay,
     required int paymentDueDay,
   }) async {
-    final auth = ref.read(authProvider);
-    if (auth is! AuthAuthenticated) return;
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
 
+    final uid = authState.user.supabaseId;
     final now = DateTime.now();
     final uuid = UuidGenerator.generate();
     final available = creditLimit - currentBalance;
 
     final model = CreditCardModel()
       ..uuid = uuid
-      ..userId = auth.user.supabaseId
+      ..userId = uid
       ..name = name
       ..lastFourDigits = lastFourDigits
       ..network = CcNetwork.values.byName(network)
@@ -246,49 +375,87 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
       ..isActive = true
       ..createdAt = now
       ..updatedAt = now
-      ..syncStatus = CcSyncStatus.pending;
+      ..syncStatus = SyncStatus.pending.toCcIsar();
 
     await ref.read(creditCardLocalDsProvider).save(model);
 
     await ref.read(syncRepositoryProvider).enqueueChange(
-          userId: auth.user.supabaseId,
+          userId: uid,
           targetCollection: 'credit_cards',
           targetUuid: uuid,
           operation: SyncOperation.create,
-          payload: jsonEncode({
-            'uuid': uuid,
-            'user_id': auth.user.supabaseId,
-            'name': name,
-            'last_four_digits': lastFourDigits,
-            'network': network,
-            'credit_limit': creditLimit,
-            'current_balance': currentBalance,
-            'available_credit': available,
-            'cut_off_day': cutOffDay,
-            'payment_due_day': paymentDueDay,
-            'alerts_enabled': true,
-            'is_active': true,
-            'created_at': now.toIso8601String(),
-            'updated_at': now.toIso8601String(),
-          }),
+          payload: _cardModelToJson(model),
         );
 
     ref.invalidate(healthProvider);
-    state = AsyncData(await _load());
-
-    // Push inmediato para que otros dispositivos reciban el cambio
-    ref.read(syncProvider.notifier).pushNow();
+    await refresh();
   }
 
   Future<void> deleteCard(String uuid) async {
-    final auth = ref.read(authProvider);
-    if (auth is! AuthAuthenticated) return;
+    await deactivate(uuid);
+  }
+}
 
-    await ref.read(creditCardLocalDsProvider).deactivate(uuid);
+// ─────────────────────────────────────────────────────────
+// Credits Provider
+// ─────────────────────────────────────────────────────────
+
+final creditsProvider =
+    AsyncNotifierProvider<CreditsNotifier, List<CreditEntity>>(
+  CreditsNotifier.new,
+);
+
+class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
+  @override
+  Future<List<CreditEntity>> build() async {
+    final authState = ref.watch(authProvider);
+    if (authState is! AuthAuthenticated) return [];
+
+    final models = await ref
+        .watch(creditLocalDsProvider)
+        .getAllActive(authState.user.supabaseId);
+    return models.map(_creditModelToEntity).toList();
+  }
+
+  Future<void> refresh() async {
+    state = const AsyncLoading();
+    state = AsyncData(await build());
+  }
+
+  Future<void> save(CreditEntity entity) async {
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
+
+    final uid = authState.user.supabaseId;
+    final ds = ref.read(creditLocalDsProvider);
+    final existing = await ds.getByUuid(entity.uuid);
+    final isNew = existing == null;
+    final now = DateTime.now();
+
+    final model = _creditEntityToModel(entity, uid, now, isNew);
+    await ds.save(model);
 
     await ref.read(syncRepositoryProvider).enqueueChange(
-          userId: auth.user.supabaseId,
-          targetCollection: 'credit_cards',
+          userId: uid,
+          targetCollection: 'credits',
+          targetUuid: model.uuid,
+          operation: isNew ? SyncOperation.create : SyncOperation.update,
+          payload: _creditModelToJson(model),
+        );
+
+    ref.invalidate(healthProvider);
+    await refresh();
+  }
+
+  Future<void> deactivate(String uuid) async {
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
+
+    await ref.read(creditLocalDsProvider).deactivate(uuid);
+
+    await ref.read(syncRepositoryProvider).enqueueChange(
+          userId: authState.user.supabaseId,
+          targetCollection: 'credits',
           targetUuid: uuid,
           operation: SyncOperation.update,
           payload: jsonEncode({
@@ -299,50 +466,8 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
         );
 
     ref.invalidate(healthProvider);
-    state = AsyncData(await _load());
-    ref.read(syncProvider.notifier).pushNow();
+    await refresh();
   }
-
-  Future<void> refresh() async {
-    state = AsyncData(await _load());
-  }
-}
-
-final creditCardsProvider =
-    AsyncNotifierProvider<CreditCardsNotifier, List<CreditCardEntity>>(
-  CreditCardsNotifier.new,
-);
-
-// ─────────────────────────────────────────────────────────
-// Credits Notifier
-// ─────────────────────────────────────────────────────────
-
-class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
-  @override
-  Future<List<CreditEntity>> build() async => _load();
-
-  Future<List<CreditEntity>> _load() async {
-    final auth = ref.read(authProvider);
-    if (auth is! AuthAuthenticated) return [];
-    final models = await ref
-        .read(creditLocalDsProvider)
-        .getAllActive(auth.user.supabaseId);
-    return models.map(_toEntity).toList();
-  }
-
-  CreditEntity _toEntity(CreditModel m) => CreditEntity(
-        uuid: m.uuid,
-        name: m.name,
-        institution: m.institution,
-        originalAmount: m.originalAmount,
-        currentBalance: m.currentBalance,
-        interestRate: m.interestRate,
-        monthlyPayment: m.monthlyPayment,
-        paymentDay: m.paymentDay,
-        totalInstallments: m.totalInstallments,
-        paidInstallments: m.paidInstallments,
-        alertsEnabled: m.alertsEnabled,
-      );
 
   Future<void> addCredit({
     required String name,
@@ -355,15 +480,16 @@ class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
     int? totalInstallments,
     int? paidInstallments,
   }) async {
-    final auth = ref.read(authProvider);
-    if (auth is! AuthAuthenticated) return;
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
 
+    final uid = authState.user.supabaseId;
     final now = DateTime.now();
     final uuid = UuidGenerator.generate();
 
     final model = CreditModel()
       ..uuid = uuid
-      ..userId = auth.user.supabaseId
+      ..userId = uid
       ..name = name
       ..institution = institution
       ..originalAmount = originalAmount
@@ -377,68 +503,24 @@ class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
       ..isActive = true
       ..createdAt = now
       ..updatedAt = now
-      ..syncStatus = CreditSyncStatus.pending;
+      ..syncStatus = SyncStatus.pending.toCreditIsar();
 
     await ref.read(creditLocalDsProvider).save(model);
 
     await ref.read(syncRepositoryProvider).enqueueChange(
-          userId: auth.user.supabaseId,
+          userId: uid,
           targetCollection: 'credits',
           targetUuid: uuid,
           operation: SyncOperation.create,
-          payload: jsonEncode({
-            'uuid': uuid,
-            'user_id': auth.user.supabaseId,
-            'name': name,
-            'institution': institution,
-            'original_amount': originalAmount,
-            'current_balance': currentBalance,
-            'interest_rate': interestRate,
-            'monthly_payment': monthlyPayment,
-            'payment_day': paymentDay,
-            'total_installments': totalInstallments,
-            'paid_installments': paidInstallments,
-            'alerts_enabled': true,
-            'is_active': true,
-            'created_at': now.toIso8601String(),
-            'updated_at': now.toIso8601String(),
-          }),
+          payload: _creditModelToJson(model),
         );
 
     ref.invalidate(healthProvider);
-    state = AsyncData(await _load());
-    ref.read(syncProvider.notifier).pushNow();
+    await refresh();
   }
 
   Future<void> deleteCredit(String uuid) async {
-    final auth = ref.read(authProvider);
-    if (auth is! AuthAuthenticated) return;
-
-    await ref.read(creditLocalDsProvider).deactivate(uuid);
-
-    await ref.read(syncRepositoryProvider).enqueueChange(
-          userId: auth.user.supabaseId,
-          targetCollection: 'credits',
-          targetUuid: uuid,
-          operation: SyncOperation.update,
-          payload: jsonEncode({
-            'uuid': uuid,
-            'is_active': false,
-            'updated_at': DateTime.now().toIso8601String(),
-          }),
-        );
-
-    ref.invalidate(healthProvider);
-    state = AsyncData(await _load());
-    ref.read(syncProvider.notifier).pushNow();
-  }
-
-  Future<void> refresh() async {
-    state = AsyncData(await _load());
+    await deactivate(uuid);
   }
 }
 
-final creditsProvider =
-    AsyncNotifierProvider<CreditsNotifier, List<CreditEntity>>(
-  CreditsNotifier.new,
-);

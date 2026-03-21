@@ -6,6 +6,8 @@ import 'package:betty_app/core/constants/app_colors.dart';
 import 'package:betty_app/core/utils/currency_formatter.dart';
 import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
+import 'package:betty_app/features/cards_credits/domain/entities/credit_card_entity.dart';
+import 'package:betty_app/features/cards_credits/domain/entities/credit_entity.dart';
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});
@@ -238,7 +240,7 @@ class _CreditCardTile extends StatelessWidget {
             // ── Header: nombre + red ──
             Row(
               children: [
-                Icon(_networkIcon(card.network), size: 20, color: utilColor),
+                Icon(_networkIcon(card.network.name), size: 20, color: utilColor),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

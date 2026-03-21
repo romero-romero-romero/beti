@@ -82,8 +82,8 @@ class TransactionDraft {
   final String? rawInputText;
   final String? creditCardUuid;
   final String? notes;
-
-  const TransactionDraft({
+  final String? ticketImagePath;
+  TransactionDraft({
     this.uuid = '',
     this.type = TransactionType.expense,
     this.amount = 0,
@@ -95,7 +95,8 @@ class TransactionDraft {
     this.rawInputText,
     this.creditCardUuid,
     this.notes,
-  }) : transactionDate = transactionDate ?? const _DefaultNow();
+    this.ticketImagePath,
+  }) : transactionDate = transactionDate ?? DateTime.now();
 
   TransactionDraft copyWith({
     String? uuid,
@@ -109,6 +110,7 @@ class TransactionDraft {
     String? rawInputText,
     String? creditCardUuid,
     String? notes,
+    String? ticketImagePath,
   }) {
     return TransactionDraft(
       uuid: uuid ?? this.uuid,
@@ -122,22 +124,16 @@ class TransactionDraft {
       rawInputText: rawInputText ?? this.rawInputText,
       creditCardUuid: creditCardUuid ?? this.creditCardUuid,
       notes: notes ?? this.notes,
+      ticketImagePath: ticketImagePath ?? this.ticketImagePath,
     );
   }
-}
-
-// Helper para default DateTime en const constructor
-class _DefaultNow implements DateTime {
-  const _DefaultNow();
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) => DateTime.now().noSuchMethod(invocation);
 }
 
 /// Notifier para el formulario de transacción.
 /// Incluye la lógica de auto-categorización.
 class TransactionFormNotifier extends StateNotifier<TransactionDraft> {
-  TransactionFormNotifier() : super(TransactionDraft(transactionDate: DateTime.now()));
+  TransactionFormNotifier()
+      : super(TransactionDraft(transactionDate: DateTime.now()));
 
   /// Resetea el formulario a valores por defecto.
   void reset() {
@@ -163,9 +159,19 @@ class TransactionFormNotifier extends StateNotifier<TransactionDraft> {
 
   void updateType(TransactionType type) => state = state.copyWith(type: type);
   void updateAmount(double amount) => state = state.copyWith(amount: amount);
-  void updateDate(DateTime date) => state = state.copyWith(transactionDate: date);
+  void updateDate(DateTime date) =>
+      state = state.copyWith(transactionDate: date);
   void updateNotes(String notes) => state = state.copyWith(notes: notes);
-  void updateCreditCard(String? uuid) => state = state.copyWith(creditCardUuid: uuid);
+  void updateCreditCard(String? uuid) =>
+      state = state.copyWith(creditCardUuid: uuid);
+  void updateInputMethod(InputMethod method) =>
+      state = state.copyWith(inputMethod: method);
+
+  void updateRawInput(String text) =>
+      state = state.copyWith(rawInputText: text);
+
+  void updateTicketImage(String path) =>
+      state = state.copyWith(ticketImagePath: path);
 
   /// Actualiza la descripción Y auto-categoriza.
   void updateDescription(String description) {
