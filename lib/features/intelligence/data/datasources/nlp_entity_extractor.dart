@@ -1,3 +1,4 @@
+import 'package:betty_app/core/enums/input_method.dart';
 import 'package:betty_app/core/enums/transaction_type.dart';
 import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/features/intelligence/data/datasources/categorization_engine.dart';
@@ -381,12 +382,9 @@ class NlpEntityExtractor {
 
     // Remover verbos de contexto
     desc = desc.replaceAll(
-      RegExp(r'\b(compre|gaste|pague|pedi|rente|me pagaron|me depositaron|recibi|gane)\b'),
+      RegExp(r'\b(compre|gaste|pague|pedi|rente|me pagaron|me depositaron|recibi|gane|fui)\b'),
       '',
     );
-
-    // Remover preposiciones sueltas al inicio
-    desc = desc.replaceAll(RegExp(r'^\s*(en|de|por|para|a|al|el|la|los|las|un|una)\s+'), '');
 
     // Remover fechas relativas
     desc = desc.replaceAll(RegExp(r'\b(hoy|ayer|antier)\b'), '');
@@ -400,8 +398,21 @@ class NlpEntityExtractor {
       '',
     );
 
-    // Limpiar espacios múltiples y trim
+    // Limpiar espacios y trim antes de la pasada final
     desc = desc.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    // Pasada final: remover preposiciones/artículos sueltos que quedaron
+    // al inicio y entre palabras significativas
+    // Ejemplo: "de tacos" → "tacos", "en el uber" → "uber"
+    final stopWords = {
+      'en', 'de', 'por', 'para', 'a', 'al', 'el', 'la', 'los', 'las',
+      'un', 'una', 'unos', 'unas', 'del', 'con', 'que', 'y', 'o',
+      'mi', 'mis', 'su', 'sus', 'lo', 'le', 'se', 'me',
+    };
+    final cleanWords = desc.split(RegExp(r'\s+'))
+        .where((w) => w.length > 1 && !stopWords.contains(w))
+        .toList();
+    desc = cleanWords.join(' ');
 
     // Si quedó vacío, usar el texto original
     if (desc.isEmpty) desc = text.trim();
