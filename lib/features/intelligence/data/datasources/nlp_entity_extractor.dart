@@ -1,4 +1,3 @@
-import 'package:betty_app/core/enums/input_method.dart';
 import 'package:betty_app/core/enums/transaction_type.dart';
 import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/features/intelligence/data/datasources/categorization_engine.dart';
