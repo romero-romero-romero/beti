@@ -1,19 +1,37 @@
 import 'package:flutter/foundation.dart';
+import 'package:isar/isar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'package:betty_app/features/auth/data/datasources/auth_local_ds.dart';
 import 'package:betty_app/features/auth/data/datasources/auth_remote_ds.dart';
 import 'package:betty_app/features/auth/data/models/user_model.dart';
 import 'package:betty_app/features/auth/domain/entities/user_entity.dart';
 import 'package:betty_app/features/auth/domain/repositories/auth_repository.dart';
 
+// Imports de TODAS las colecciones para el nuclear wipe
+import 'package:betty_app/features/transactions/data/models/transaction_model.dart';
+import 'package:betty_app/features/transactions/data/models/category_model.dart';
+import 'package:betty_app/features/cards_credits/data/models/credit_card_model.dart';
+import 'package:betty_app/features/cards_credits/data/models/credit_model.dart';
+import 'package:betty_app/features/budgets_goals/data/models/budget_model.dart';
+import 'package:betty_app/features/budgets_goals/data/models/goal_model.dart';
+import 'package:betty_app/features/financial_health/data/models/health_snapshot_model.dart';
+import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
+
 class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _localDs;
   final AuthRemoteDataSource _remoteDs;
+  final Isar _isar;
 
   AuthRepositoryImpl({
     required AuthLocalDataSource localDs,
     required AuthRemoteDataSource remoteDs,
+    required Isar isar,
   })  : _localDs = localDs,
-        _remoteDs = remoteDs;
+        _remoteDs = remoteDs,
+        _isar = isar;
+
+  // ── Sign In ──
 
   @override
   Future<UserEntity> signInWithPassword({
@@ -21,14 +39,12 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
   }) async {
     try {
-      // Intentar login remoto
       final response = await _remoteDs.signInWithPassword(
         email: email,
         password: password,
       );
 
       if (response.user != null && response.session != null) {
-        // Éxito: cachear sesión en Isar para uso offline permanente
         await _cacheUserSession(response.user!, response.session!);
         return _mapUserToEntity(response.user!, isAuthenticated: true);
       }
@@ -36,7 +52,6 @@ class AuthRepositoryImpl implements AuthRepository {
       throw Exception('Login failed: no user returned');
     } catch (e) {
       debugPrint('Remote sign in failed: $e');
-      // Si falla (sin internet), verificar sesión local
       final cached = await _localDs.getCachedSession();
       if (cached != null && cached.email == email) {
         return _mapCachedToEntity(cached);
@@ -45,13 +60,14 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  // ── Sign Up ──
+
   @override
   Future<UserEntity> signUp({
     required String email,
     required String password,
     String? fullName,
   }) async {
-    // Registro SIEMPRE requiere internet
     final response = await _remoteDs.signUp(
       email: email,
       password: password,
@@ -71,6 +87,8 @@ class AuthRepositoryImpl implements AuthRepository {
     throw Exception('Sign up failed: no user returned');
   }
 
+  // ── Google / Reset ──
+
   @override
   Future<bool> signInWithGoogle() async {
     return await _remoteDs.signInWithGoogle();
@@ -81,12 +99,32 @@ class AuthRepositoryImpl implements AuthRepository {
     await _remoteDs.resetPassword(email);
   }
 
+  // ── Sign Out (NUCLEAR WIPE) ──
+
   @override
   Future<void> signOut() async {
-    // Limpiar sesión local PRIMERO (prioridad offline)
-    await _localDs.clearSession();
+    // 1. Limpiar TODAS las colecciones de Isar
+    await _isar.writeTxn(() async {
+      await _isar.userModels.clear();
+      await _isar.transactionModels.clear();
+      await _isar.categoryModels.clear();
+      await _isar.creditCardModels.clear();
+      await _isar.creditModels.clear();
+      await _isar.budgetModels.clear();
+      await _isar.goalModels.clear();
+      await _isar.healthSnapshotModels.clear();
+      await _isar.syncQueueModels.clear();
+    });
 
-    // Luego intentar logout remoto (puede fallar sin internet, no importa)
+    // 2. Limpiar SharedPreferences de sync
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('betty_last_pull_at');
+    } catch (e) {
+      debugPrint('Failed to clear SharedPreferences: $e');
+    }
+
+    // 3. Logout remoto (puede fallar sin internet)
     try {
       await _remoteDs.signOut();
     } catch (e) {
@@ -94,29 +132,56 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  // ── Get Current User (con validación de tokens) ──
+
   @override
   Future<UserEntity> getCurrentUser() async {
-    // 1. Verificar sesión local en Isar (funciona offline)
+    // 1. Verificar sesión local en Isar
     final cached = await _localDs.getCachedSession();
+
     if (cached != null) {
-      // 2. Si hay internet, intentar refrescar tokens silenciosamente
+      // 2. Si hay internet, validar que la sesión siga viva
       try {
         final session = _remoteDs.currentSession;
+
         if (session != null) {
+          // SDK tiene sesión → refrescar tokens en cache
           await _localDs.updateTokens(
             supabaseId: cached.supabaseId,
             accessToken: session.accessToken,
             refreshToken: session.refreshToken ?? '',
           );
+          return _mapCachedToEntity(cached);
         }
-      } catch (_) {
-        // Sin internet: seguir con la sesión cacheada
-      }
 
-      return _mapCachedToEntity(cached);
+        // SDK no tiene sesión → intentar refresh
+        if (cached.cachedRefreshToken != null &&
+            cached.cachedRefreshToken!.isNotEmpty) {
+          try {
+            final response = await _remoteDs.refreshSession();
+            if (response.session != null) {
+              await _localDs.updateTokens(
+                supabaseId: cached.supabaseId,
+                accessToken: response.session!.accessToken,
+                refreshToken: response.session!.refreshToken ?? '',
+              );
+              return _mapCachedToEntity(cached);
+            }
+          } catch (_) {
+            debugPrint('Refresh session failed — invalidating local cache');
+          }
+        }
+
+        // Token inválido o usuario eliminado → nuclear wipe
+        await signOut();
+        return UserEntity.empty;
+      } catch (_) {
+        // Sin internet: confiar en el cache (correcto para offline-first)
+        return _mapCachedToEntity(cached);
+      }
     }
 
-    // 3. No hay sesión local: verificar Supabase
+    // 3. No hay sesión local: verificar Supabase directamente
     final user = _remoteDs.currentUser;
     final session = _remoteDs.currentSession;
     if (user != null && session != null) {
@@ -129,10 +194,9 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ── Helpers privados ──
 
-  /// Cachea la sesión de Supabase en Isar para uso offline.
   Future<void> _cacheUserSession(
-    dynamic user, // Supabase User
-    dynamic session, // Supabase Session
+    dynamic user,
+    dynamic session,
   ) async {
     final now = DateTime.now();
     final userModel = UserModel()
@@ -152,7 +216,6 @@ class AuthRepositoryImpl implements AuthRepository {
     await _localDs.cacheSession(userModel);
   }
 
-  /// Mapea un User de Supabase a UserEntity del dominio.
   UserEntity _mapUserToEntity(dynamic user, {bool isAuthenticated = false}) {
     return UserEntity(
       supabaseId: user.id,
@@ -163,7 +226,6 @@ class AuthRepositoryImpl implements AuthRepository {
     );
   }
 
-  /// Mapea un UserModel de Isar a UserEntity del dominio.
   UserEntity _mapCachedToEntity(UserModel cached) {
     return UserEntity(
       supabaseId: cached.supabaseId,

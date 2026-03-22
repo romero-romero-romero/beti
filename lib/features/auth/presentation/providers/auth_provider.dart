@@ -5,6 +5,11 @@ import 'package:betty_app/features/auth/data/datasources/auth_remote_ds.dart';
 import 'package:betty_app/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:betty_app/features/auth/domain/entities/user_entity.dart';
 import 'package:betty_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
+import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
 
 // ── Dependency Injection via Riverpod ──
 
@@ -20,6 +25,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     localDs: ref.watch(authLocalDsProvider),
     remoteDs: ref.watch(authRemoteDsProvider),
+    isar: ref.watch(isarProvider), // ← NUEVO
   );
 });
 
@@ -56,8 +62,9 @@ class AuthError extends AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
+  final Ref _ref; // ← NUEVO
 
-  AuthNotifier(this._repository) : super(const AuthInitial());
+  AuthNotifier(this._repository, this._ref) : super(const AuthInitial());
 
   /// Verifica si hay sesión activa (local o remota).
   Future<void> checkAuthStatus() async {
@@ -134,14 +141,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Cerrar sesión.
   Future<void> signOut() async {
     await _repository.signOut();
+
+    // Invalidar TODOS los providers de datos para limpiar cache de Riverpod
+    _ref.invalidate(healthProvider);
+    _ref.invalidate(transactionsProvider);
+    _ref.invalidate(budgetsProvider);
+    _ref.invalidate(goalsProvider);
+    _ref.invalidate(creditCardsProvider);
+    _ref.invalidate(creditsProvider);
+    _ref.invalidate(pendingSyncCountProvider);
+
     state = const AuthUnauthenticated();
   }
 
   String _parseAuthError(dynamic error) {
     final msg = error.toString();
-    if (msg.contains('Invalid login credentials')) return 'Credenciales inválidas';
+    if (msg.contains('Invalid login credentials')) {
+      return 'Credenciales inválidas';
+    }
     if (msg.contains('Email not confirmed')) return 'Correo no confirmado';
-    if (msg.contains('User already registered')) return 'El correo ya está registrado';
+    if (msg.contains('User already registered')) {
+      return 'El correo ya está registrado';
+    }
     if (msg.contains('SocketException') || msg.contains('Connection')) {
       return 'Sin conexión a internet';
     }
@@ -153,5 +174,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repository);
+  return AuthNotifier(repository, ref); // ← pasar ref
 });

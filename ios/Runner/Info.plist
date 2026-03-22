@@ -53,5 +53,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Betty usa la red para sincronizar tu respaldo en segundo plano.</string>
+	<key>NSBonjourServices</key>
+	<array>
+    <string>_supabase._tcp</string>
+	</array>
 </dict>
 </plist>
