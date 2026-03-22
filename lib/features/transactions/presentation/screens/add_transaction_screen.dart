@@ -81,7 +81,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           icon: const Icon(Icons.close),
           onPressed: () {
             ref.read(transactionFormProvider.notifier).reset();
-            context.pop();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
           },
         ),
       ),
