@@ -42,6 +42,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+
 
   # ── Generación de código Isar ──
   isar_generator: ^3.1.0+1
@@ -53,3 +55,10 @@ flutter:
   assets:
     - .env
     - assets/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/Beti-icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/Beti-icon.png"

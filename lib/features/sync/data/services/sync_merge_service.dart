@@ -91,6 +91,7 @@ class SyncMergeService {
       for (final row in rows) {
         final uuid = row['uuid'] as String;
         final remoteUpdatedAt = DateTime.parse(row['updated_at'] as String);
+        final remoteIsDeleted = row['is_deleted'] as bool? ?? false;
 
         final local = await _isar.transactionModels
             .filter()
@@ -98,10 +99,19 @@ class SyncMergeService {
             .findFirst();
 
         if (local == null) {
-          await _isar.transactionModels.put(_mapTransaction(row));
-          inserted++;
+          if (!remoteIsDeleted) {
+            await _isar.transactionModels.put(_mapTransaction(row));
+            inserted++;
+          } else {
+            skipped++;
+          }
+        } else if (remoteIsDeleted) {
+          // Delete siempre gana
+          final merged = _mapTransaction(row)..id = local.id;
+          await _isar.transactionModels.put(merged);
+          updated++;
         } else if (local.syncStatus == TxSyncStatus.pending) {
-          skipped++; // Tiene cambios locales sin pushear
+          skipped++;
         } else if (remoteUpdatedAt.isAfter(local.updatedAt)) {
           final merged = _mapTransaction(row)..id = local.id;
           await _isar.transactionModels.put(merged);
@@ -124,8 +134,8 @@ class SyncMergeService {
       ..description = (row['description'] as String?) ?? ''
       ..category = TxCategory.values.byName(row['category'] as String)
       ..categoryAutoAssigned = row['category_auto_assigned'] as bool? ?? false
-      ..inputMethod =
-          TxInputMethod.values.byName(row['input_method'] as String? ?? 'manual')
+      ..inputMethod = TxInputMethod.values
+          .byName(row['input_method'] as String? ?? 'manual')
       ..transactionDate = DateTime.parse(row['transaction_date'] as String)
       ..ticketImagePath = row['ticket_image_path'] as String?
       ..rawInputText = row['raw_input_text'] as String?
@@ -140,8 +150,7 @@ class SyncMergeService {
   // ─────────────────────────────────────────────────────────
   // CATEGORIES
   // ─────────────────────────────────────────────────────────
-  Future<MergeResult> _mergeCategories(
-      List<Map<String, dynamic>> rows) async {
+  Future<MergeResult> _mergeCategories(List<Map<String, dynamic>> rows) async {
     int inserted = 0, updated = 0, skipped = 0;
 
     await _isar.writeTxn(() async {
@@ -149,10 +158,8 @@ class SyncMergeService {
         final uuid = row['uuid'] as String;
         final remoteUpdatedAt = DateTime.parse(row['updated_at'] as String);
 
-        final local = await _isar.categoryModels
-            .filter()
-            .uuidEqualTo(uuid)
-            .findFirst();
+        final local =
+            await _isar.categoryModels.filter().uuidEqualTo(uuid).findFirst();
 
         if (local == null) {
           await _isar.categoryModels.put(_mapCategory(row));
@@ -191,23 +198,31 @@ class SyncMergeService {
   // ─────────────────────────────────────────────────────────
   // CREDIT CARDS
   // ─────────────────────────────────────────────────────────
-  Future<MergeResult> _mergeCreditCards(
-      List<Map<String, dynamic>> rows) async {
+  Future<MergeResult> _mergeCreditCards(List<Map<String, dynamic>> rows) async {
     int inserted = 0, updated = 0, skipped = 0;
 
     await _isar.writeTxn(() async {
       for (final row in rows) {
         final uuid = row['uuid'] as String;
         final remoteUpdatedAt = DateTime.parse(row['updated_at'] as String);
+        final remoteIsActive = row['is_active'] as bool? ?? true;
 
-        final local = await _isar.creditCardModels
-            .filter()
-            .uuidEqualTo(uuid)
-            .findFirst();
+        final local =
+            await _isar.creditCardModels.filter().uuidEqualTo(uuid).findFirst();
 
         if (local == null) {
-          await _isar.creditCardModels.put(_mapCreditCard(row));
-          inserted++;
+          // Solo insertar si está activo (no traer tarjetas ya eliminadas)
+          if (remoteIsActive) {
+            await _isar.creditCardModels.put(_mapCreditCard(row));
+            inserted++;
+          } else {
+            skipped++;
+          }
+        } else if (!remoteIsActive) {
+          // Delete siempre gana — propagar sin importar syncStatus
+          final merged = _mapCreditCard(row)..id = local.id;
+          await _isar.creditCardModels.put(merged);
+          updated++;
         } else if (local.syncStatus == CcSyncStatus.pending) {
           skipped++;
         } else if (remoteUpdatedAt.isAfter(local.updatedAt)) {
@@ -250,23 +265,29 @@ class SyncMergeService {
   // ─────────────────────────────────────────────────────────
   // CREDITS
   // ─────────────────────────────────────────────────────────
-  Future<MergeResult> _mergeCredits(
-      List<Map<String, dynamic>> rows) async {
+  Future<MergeResult> _mergeCredits(List<Map<String, dynamic>> rows) async {
     int inserted = 0, updated = 0, skipped = 0;
 
     await _isar.writeTxn(() async {
       for (final row in rows) {
         final uuid = row['uuid'] as String;
         final remoteUpdatedAt = DateTime.parse(row['updated_at'] as String);
+        final remoteIsActive = row['is_active'] as bool? ?? true;
 
-        final local = await _isar.creditModels
-            .filter()
-            .uuidEqualTo(uuid)
-            .findFirst();
+        final local =
+            await _isar.creditModels.filter().uuidEqualTo(uuid).findFirst();
 
         if (local == null) {
-          await _isar.creditModels.put(_mapCredit(row));
-          inserted++;
+          if (remoteIsActive) {
+            await _isar.creditModels.put(_mapCredit(row));
+            inserted++;
+          } else {
+            skipped++;
+          }
+        } else if (!remoteIsActive) {
+          final merged = _mapCredit(row)..id = local.id;
+          await _isar.creditModels.put(merged);
+          updated++;
         } else if (local.syncStatus == CreditSyncStatus.pending) {
           skipped++;
         } else if (remoteUpdatedAt.isAfter(local.updatedAt)) {
@@ -311,8 +332,7 @@ class SyncMergeService {
   // ─────────────────────────────────────────────────────────
   // BUDGETS
   // ─────────────────────────────────────────────────────────
-  Future<MergeResult> _mergeBudgets(
-      List<Map<String, dynamic>> rows) async {
+  Future<MergeResult> _mergeBudgets(List<Map<String, dynamic>> rows) async {
     int inserted = 0, updated = 0, skipped = 0;
 
     await _isar.writeTxn(() async {
@@ -320,10 +340,8 @@ class SyncMergeService {
         final uuid = row['uuid'] as String;
         final remoteUpdatedAt = DateTime.parse(row['updated_at'] as String);
 
-        final local = await _isar.budgetModels
-            .filter()
-            .uuidEqualTo(uuid)
-            .findFirst();
+        final local =
+            await _isar.budgetModels.filter().uuidEqualTo(uuid).findFirst();
 
         if (local == null) {
           await _isar.budgetModels.put(_mapBudget(row));
@@ -361,8 +379,7 @@ class SyncMergeService {
   // ─────────────────────────────────────────────────────────
   // GOALS
   // ─────────────────────────────────────────────────────────
-  Future<MergeResult> _mergeGoals(
-      List<Map<String, dynamic>> rows) async {
+  Future<MergeResult> _mergeGoals(List<Map<String, dynamic>> rows) async {
     int inserted = 0, updated = 0, skipped = 0;
 
     await _isar.writeTxn(() async {
@@ -370,10 +387,8 @@ class SyncMergeService {
         final uuid = row['uuid'] as String;
         final remoteUpdatedAt = DateTime.parse(row['updated_at'] as String);
 
-        final local = await _isar.goalModels
-            .filter()
-            .uuidEqualTo(uuid)
-            .findFirst();
+        final local =
+            await _isar.goalModels.filter().uuidEqualTo(uuid).findFirst();
 
         if (local == null) {
           await _isar.goalModels.put(_mapGoal(row));
@@ -451,8 +466,7 @@ class SyncMergeService {
       ..overduePayments = row['overdue_payments'] as int? ?? 0
       ..creditUtilizationRatio =
           (row['credit_utilization_ratio'] as num?)?.toDouble() ?? 0
-      ..goalProgressAvg =
-          (row['goal_progress_avg'] as num?)?.toDouble() ?? 0
+      ..goalProgressAvg = (row['goal_progress_avg'] as num?)?.toDouble() ?? 0
       ..healthScore = (row['health_score'] as num?)?.toDouble() ?? 50
       ..healthLevel = SnapshotHealthLevel.values
           .byName(row['health_level'] as String? ?? 'stable')
@@ -476,8 +490,8 @@ class SyncMergeService {
         local.email = row['email'] as String? ?? local.email;
         local.displayName = row['display_name'] as String?;
         local.avatarUrl = row['avatar_url'] as String?;
-        local.currency = UserCurrency.values
-            .byName(row['currency'] as String? ?? 'mxn');
+        local.currency =
+            UserCurrency.values.byName(row['currency'] as String? ?? 'mxn');
         local.onboardingCompleted =
             row['onboarding_completed'] as bool? ?? local.onboardingCompleted;
         local.updatedAt = DateTime.now();
