@@ -64,9 +64,17 @@ class SpeechNotifier extends StateNotifier<SpeechState> {
 
     final available = await _ds.initialize();
     if (!available) {
+      // Diferenciar error de permiso vs no disponible
+      final errorMsg = _ds.lastError.toLowerCase();
+      final isPermission = errorMsg.contains('permission') ||
+          errorMsg.contains('denied') ||
+          errorMsg.contains('not_allowed');
+
       state = state.copyWith(
         status: SpeechStatus.error,
-        error: 'Reconocimiento de voz no disponible en este dispositivo',
+        error: isPermission
+            ? 'Permiso de micrófono denegado. Habilítalo en Ajustes > Apps > Beti > Permisos.'
+            : 'Reconocimiento de voz no disponible. Verifica que el paquete de idioma español esté instalado.',
       );
       return;
     }
