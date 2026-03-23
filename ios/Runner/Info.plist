@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Betty App</string>
+	<string>Beti App</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>betty_app</string>
+	<string>Beti_app</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -27,13 +27,13 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Betty usa la cámara para fotografiar tickets y extraer los datos automáticamente.</string>
+	<string>Beti usa la cámara para fotografiar tickets y extraer los datos automáticamente.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Betty necesita el micrófono para transcribir tu voz a texto.</string>
+	<string>Beti necesita el micrófono para transcribir tu voz a texto.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Betty accede a tu galería para seleccionar fotos de tickets.</string>
+	<string>Beti accede a tu galería para seleccionar fotos de tickets.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Betty usa reconocimiento de voz para registrar tus gastos dictándolos.</string>
+	<string>Beti usa reconocimiento de voz para registrar tus gastos dictándolos.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -54,7 +54,7 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Betty usa la red para sincronizar tu respaldo en segundo plano.</string>
+	<string>Beti usa la red para sincronizar tu respaldo en segundo plano.</string>
 	<key>NSBonjourServices</key>
 	<array>
     <string>_supabase._tcp</string>

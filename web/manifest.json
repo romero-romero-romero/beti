@@ -1,6 +1,6 @@
 {
-    "name": "betty_app",
-    "short_name": "betty_app",
+    "name": "beti_app",
+    "short_name": "beti_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

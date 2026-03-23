@@ -2,7 +2,7 @@
 class AppStrings {
   AppStrings._();
 
-  static const String appName = 'Betty';
+  static const String appName = 'Beti';
   static const String appTagline = 'Tu bienestar financiero';
 
   // ── Auth ──
