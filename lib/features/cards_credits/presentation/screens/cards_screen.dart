@@ -103,6 +103,9 @@ class CardsScreen extends ConsumerWidget {
                               onDelete: () => ref
                                   .read(creditCardsProvider.notifier)
                                   .deleteCard(card.uuid),
+                              onToggleAlerts: () => ref
+                                  .read(creditCardsProvider.notifier)
+                                  .toggleAlerts(card.uuid, !card.alertsEnabled),
                             )),
                       ],
                     );
@@ -136,6 +139,9 @@ class CardsScreen extends ConsumerWidget {
                               onDelete: () => ref
                                   .read(creditsProvider.notifier)
                                   .deleteCredit(credit.uuid),
+                              onToggleAlerts: () => ref
+                                  .read(creditsProvider.notifier)
+                                  .toggleAlerts(credit.uuid, !credit.alertsEnabled),
                             )),
                       ],
                     );
@@ -173,11 +179,13 @@ class _CreditCardTile extends StatelessWidget {
   final CreditCardEntity card;
   final bool isDark;
   final VoidCallback onDelete;
+  final VoidCallback onToggleAlerts;
 
   const _CreditCardTile({
     required this.card,
     required this.isDark,
     required this.onDelete,
+    required this.onToggleAlerts,
   });
 
   @override
@@ -331,6 +339,49 @@ class _CreditCardTile extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+
+            // ── Toggle de alertas ──
+            Row(
+              children: [
+                Icon(
+                  card.alertsEnabled
+                      ? Icons.notifications_active_outlined
+                      : Icons.notifications_off_outlined,
+                  size: 16,
+                  color: card.alertsEnabled
+                      ? AppColors.primary
+                      : (isDark ? AppColors.grey : AppColors.lightGrey),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Alertas de pago',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  height: 24,
+                  child: PlatformHelper.isApple
+                      ? CupertinoSwitch(
+                          value: card.alertsEnabled,
+                          activeTrackColor: AppColors.primary,
+                          onChanged: (_) => onToggleAlerts(),
+                        )
+                      : Switch(
+                          value: card.alertsEnabled,
+                          activeColor: AppColors.primary,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (_) => onToggleAlerts(),
+                        ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -355,11 +406,13 @@ class _CreditTile extends StatelessWidget {
   final CreditEntity credit;
   final bool isDark;
   final VoidCallback onDelete;
+  final VoidCallback onToggleAlerts;
 
   const _CreditTile({
     required this.credit,
     required this.isDark,
     required this.onDelete,
+    required this.onToggleAlerts,
   });
 
   @override
@@ -499,6 +552,49 @@ class _CreditTile extends StatelessWidget {
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondaryLight,
                   ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // ── Toggle de alertas ──
+            Row(
+              children: [
+                Icon(
+                  credit.alertsEnabled
+                      ? Icons.notifications_active_outlined
+                      : Icons.notifications_off_outlined,
+                  size: 16,
+                  color: credit.alertsEnabled
+                      ? AppColors.primary
+                      : (isDark ? AppColors.grey : AppColors.lightGrey),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Alertas de pago',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+                const Spacer(),
+                SizedBox(
+                  height: 24,
+                  child: PlatformHelper.isApple
+                      ? CupertinoSwitch(
+                          value: credit.alertsEnabled,
+                          activeTrackColor: AppColors.primary,
+                          onChanged: (_) => onToggleAlerts(),
+                        )
+                      : Switch(
+                          value: credit.alertsEnabled,
+                          activeColor: AppColors.primary,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (_) => onToggleAlerts(),
+                        ),
                 ),
               ],
             ),

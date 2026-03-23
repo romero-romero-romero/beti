@@ -1,16 +1,12 @@
-# betty_app
+# Beti
 
-A new Flutter project.
+App móvil (Android/iOS) offline-first para gestión financiera personal.
 
-## Getting Started
+## Stack
+- Flutter + Riverpod + GoRouter
+- Isar Database (fuente de verdad local)
+- Supabase (Auth + sync en segundo plano)
+- Google ML Kit (OCR) + Speech-to-Text nativo
+- TensorFlow Lite (en desarrollo)
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Setup

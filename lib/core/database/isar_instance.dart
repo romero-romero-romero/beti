@@ -60,7 +60,7 @@ class IsarInstance {
       ],
       directory: dir.path,
       name: 'betty_db',
-      inspector: true,
+      inspector: !const bool.fromEnvironment('dart.vm.product'),
     );
 
     return _instance!;

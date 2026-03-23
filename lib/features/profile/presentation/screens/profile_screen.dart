@@ -34,40 +34,71 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // ── Avatar + Nombre ──
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 72,
-                      height: 72,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primary.withValues(alpha: 0.1),
+              Builder(builder: (_) {
+                final authState = ref.watch(authProvider);
+                String displayName = 'Usuario';
+                String email = '';
+                String initials = 'U';
+
+                if (authState is AuthAuthenticated) {
+                  final user = authState.user;
+                  email = user.email;
+
+                  if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
+                    displayName = user.displayName!.trim();
+                    // Iniciales: primera letra de cada palabra (máx 2)
+                    final parts = displayName.split(' ').where((p) => p.isNotEmpty).toList();
+                    initials = parts.length >= 2
+                        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+                        : parts[0][0].toUpperCase();
+                  } else if (email.contains('@')) {
+                    displayName = email.split('@').first;
+                    initials = displayName[0].toUpperCase();
+                  }
+                }
+
+                return Center(
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                        ),
+                        child: Center(
+                          child: Text(
+                            initials,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.person,
-                        size: 36,
-                        color: AppColors.primary,
+                      const SizedBox(height: 12),
+                      Text(
+                        displayName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Usuario',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'usuario@email.com',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                      if (email.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          email,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                );
+              }),
               const SizedBox(height: 32),
 
               // ── Sección Preferencias ──

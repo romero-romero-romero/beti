@@ -5,6 +5,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:betty_app/core/database/isar_instance.dart';
 import 'package:betty_app/app.dart';
+import 'package:betty_app/features/alerts/data/services/alert_scheduler.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,6 +19,8 @@ void main() async {
 
   // 2. Inicializar Isar PRIMERO (fuente de verdad local, siempre funciona)
   await IsarInstance.initialize();
+  await AlertScheduler.initialize();
+
 
   // 3. Inicializar Supabase (puede fallar sin internet — la app sigue offline)
   final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';

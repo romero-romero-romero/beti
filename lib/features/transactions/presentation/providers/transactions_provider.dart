@@ -11,6 +11,7 @@ import 'package:betty_app/features/transactions/data/datasources/transaction_loc
 import 'package:betty_app/features/transactions/data/repositories/transaction_repository_impl.dart';
 import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:betty_app/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
 
 // ── Dependency Injection ──
 
@@ -50,11 +51,13 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionEntity>> {
   Future<void> save(TransactionEntity transaction) async {
     await ref.read(transactionRepositoryProvider).save(transaction);
     await refresh();
+    ref.invalidate(budgetsProvider);
   }
 
   Future<void> delete(String uuid) async {
     await ref.read(transactionRepositoryProvider).delete(uuid);
     await refresh();
+    ref.invalidate(budgetsProvider);
   }
 }
 

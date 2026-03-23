@@ -13,6 +13,7 @@ import 'package:betty_app/features/cards_credits/domain/entities/credit_entity.d
 import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
 import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
 import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:betty_app/features/alerts/presentation/providers/alert_provider.dart';
 
 // ─────────────────────────────────────────────────────────
 // DataSources
@@ -319,6 +320,7 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
         );
 
     ref.invalidate(healthProvider);
+    ref.invalidate(alertProvider);
     await refresh();
   }
 
@@ -341,8 +343,10 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
         );
 
     ref.invalidate(healthProvider);
+    ref.invalidate(alertProvider);
     await refresh();
   }
+
   Future<void> addCard({
     required String name,
     String? lastFourDigits,
@@ -388,11 +392,37 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
         );
 
     ref.invalidate(healthProvider);
+    ref.invalidate(alertProvider);
     await refresh();
   }
 
   Future<void> deleteCard(String uuid) async {
     await deactivate(uuid);
+  }
+
+  Future<void> toggleAlerts(String uuid, bool enabled) async {
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
+
+    final ds = ref.read(creditCardLocalDsProvider);
+    final model = await ds.getByUuid(uuid);
+    if (model == null) return;
+
+    model.alertsEnabled = enabled;
+    model.updatedAt = DateTime.now();
+    model.syncStatus = SyncStatus.pending.toCcIsar();
+    await ds.save(model);
+
+    await ref.read(syncRepositoryProvider).enqueueChange(
+          userId: authState.user.supabaseId,
+          targetCollection: 'credit_cards',
+          targetUuid: uuid,
+          operation: SyncOperation.update,
+          payload: _cardModelToJson(model),
+        );
+
+    ref.invalidate(alertProvider);
+    await refresh();
   }
 }
 
@@ -444,6 +474,7 @@ class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
         );
 
     ref.invalidate(healthProvider);
+    ref.invalidate(alertProvider);
     await refresh();
   }
 
@@ -466,6 +497,7 @@ class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
         );
 
     ref.invalidate(healthProvider);
+    ref.invalidate(alertProvider);
     await refresh();
   }
 
@@ -516,11 +548,36 @@ class CreditsNotifier extends AsyncNotifier<List<CreditEntity>> {
         );
 
     ref.invalidate(healthProvider);
+    ref.invalidate(alertProvider);
     await refresh();
   }
 
   Future<void> deleteCredit(String uuid) async {
     await deactivate(uuid);
   }
-}
 
+  Future<void> toggleAlerts(String uuid, bool enabled) async {
+    final authState = ref.read(authProvider);
+    if (authState is! AuthAuthenticated) return;
+
+    final ds = ref.read(creditLocalDsProvider);
+    final model = await ds.getByUuid(uuid);
+    if (model == null) return;
+
+    model.alertsEnabled = enabled;
+    model.updatedAt = DateTime.now();
+    model.syncStatus = SyncStatus.pending.toCreditIsar();
+    await ds.save(model);
+
+    await ref.read(syncRepositoryProvider).enqueueChange(
+          userId: authState.user.supabaseId,
+          targetCollection: 'credits',
+          targetUuid: uuid,
+          operation: SyncOperation.update,
+          payload: _creditModelToJson(model),
+        );
+
+    ref.invalidate(alertProvider);
+    await refresh();
+  }
+}
