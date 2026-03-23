@@ -129,8 +129,11 @@ class HealthEngine {
       goalProgress: goalProgressAvg,
     );
 
+    final hasActivity = totalIncome > 0 || totalDebt > 0 || goalProgressAvg > 0;
     final level = _scoreToLevel(score);
-    final message = _levelToMessage(level);
+    final message = hasActivity
+        ? _levelToMessage(level)
+        : 'Registra tus ingresos y gastos para ver tu salud financiera. 📝';
 
     return HealthResult(
       score: score,
@@ -183,6 +186,12 @@ class HealthEngine {
     required int overduePayments,
     required double goalProgress,
   }) {
+    // ── Guarda: sin datos financieros, no hay score válido ──
+    // Si no hay ingresos, gastos, deuda ni metas, el usuario aún no
+    // tiene actividad. Retornar 0 en vez de un score inflado.
+    final hasActivity = totalIncome > 0 || totalDebt > 0 || goalProgress > 0;
+    if (!hasActivity) return 0;
+
     // Componente 1: Ratio gasto/ingreso (35%)
     double ratioScore;
     if (ratio <= FinancialConstants.peaceThreshold) {
@@ -235,7 +244,8 @@ class HealthEngine {
         (goalScore * FinancialConstants.weightGoalProgress);
   }
 
-  HealthLevel _scoreToLevel(double score) {
+ HealthLevel _scoreToLevel(double score) {
+    if (score == 0) return HealthLevel.peace; // Sin datos = estado neutro
     if (score >= 80) return HealthLevel.peace;
     if (score >= 60) return HealthLevel.stable;
     if (score >= 40) return HealthLevel.warning;
@@ -245,10 +255,10 @@ class HealthEngine {
 
   String _levelToMessage(HealthLevel level) {
     return switch (level) {
-      HealthLevel.peace => 'Excelente. Estás en paz financiera. 🌿',
-      HealthLevel.stable => 'Vas bien. Mantén el ritmo. 💙',
-      HealthLevel.warning => 'Cuidado. Tus gastos están creciendo. ⚡',
-      HealthLevel.danger => 'Alerta. Estás cerca del límite. 🔥',
+      HealthLevel.peace => 'Excelente. Estás en paz financiera. ✨',
+      HealthLevel.stable => 'Vas bien. Mantén el ritmo. 👍',
+      HealthLevel.warning => 'Cuidado. Tus gastos están creciendo. ⚠️',
+      HealthLevel.danger => 'Alerta. Estás cerca del límite. 🔔',
       HealthLevel.crisis =>
         'Necesitas actuar. Tus gastos superan tus ingresos. 🚨',
     };

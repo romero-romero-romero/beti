@@ -61,7 +61,8 @@ class _HealthThermometerState extends State<HealthThermometer>
       _scoreAnimation = Tween<double>(
         begin: oldWidget.score,
         end: widget.score,
-      ).animate(CurvedAnimation(parent: _scoreController, curve: Curves.easeOutCubic));
+      ).animate(CurvedAnimation(
+          parent: _scoreController, curve: Curves.easeOutCubic));
       _scoreController
         ..reset()
         ..forward();
@@ -177,6 +178,8 @@ class _HealthThermometerState extends State<HealthThermometer>
   }
 
   String _levelLabel(HealthLevel level) {
+    // Si el score es 0, mostrar label neutro (sin datos)
+    if (widget.score == 0) return 'INICIO';
     return switch (level) {
       HealthLevel.peace => 'PAZ',
       HealthLevel.stable => 'ESTABLE',
