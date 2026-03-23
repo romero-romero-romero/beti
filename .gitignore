@@ -48,3 +48,26 @@ app.*.map.json
 *.g.dart
 *.freezed.dart
 *.isar
+
+cat >> .gitignore << 'EOF'
+
+# ── Plataformas removidas ──
+/web/
+/linux/
+/windows/
+/macos/
+
+# ── Node/React (EJEMPLO-APP no pertenece aquí) ──
+node_modules/
+dist/
+.next/
+package-lock.json
+
+# ── IDE extras ──
+.idea/
+*.iml
+
+# ── macOS ──
+.DS_Store
+**/.DS_Store
+EOF

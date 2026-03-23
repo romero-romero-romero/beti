@@ -9,6 +9,7 @@ import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
 import 'package:betty_app/features/transactions/presentation/widgets/transaction_tile.dart';
+import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
 
 /// Dashboard principal de Betty — Salud Financiera Emocional.
 ///
@@ -43,7 +44,7 @@ class HealthDashboardScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // ── Saludo + Fecha ──
-                _buildGreeting(context, isDark),
+                _buildGreeting(context, ref, isDark),
                 const SizedBox(height: 20),
 
                 // ── Balance Card ──
@@ -91,9 +92,26 @@ class HealthDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildGreeting(BuildContext context, bool isDark) {
+  Widget _buildGreeting(BuildContext context, WidgetRef ref, bool isDark) {
     final now = DateTime.now();
     final dateStr = DateFormat('EEEE, d MMM', 'es_MX').format(now);
+
+    // Extraer nombre real del usuario autenticado
+    final authState = ref.watch(authProvider);
+    String userName = 'Usuario';
+    if (authState is AuthAuthenticated) {
+      final display = authState.user.displayName;
+      if (display != null && display.trim().isNotEmpty) {
+        // Usar solo el primer nombre para el saludo
+        userName = display.trim().split(' ').first;
+      } else {
+        // Fallback: parte local del email antes del @
+        final email = authState.user.email;
+        if (email.contains('@')) {
+          userName = email.split('@').first;
+        }
+      }
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,7 +127,7 @@ class HealthDashboardScreen extends ConsumerWidget {
         Row(
           children: [
             Text(
-              'Hola, Usuario ',
+              'Hola, $userName ',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
