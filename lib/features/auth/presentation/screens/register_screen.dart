@@ -264,7 +264,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     height: 50,
                     child: OutlinedButton.icon(
                       onPressed: isLoading ? null : _signUpWithGoogle,
-                      icon: const Icon(Icons.g_mobiledata, size: 24),
+                      //icon: const Icon(Icons.g_mobiledata, size: 24),
+                      icon: Image.asset('assets/images/google_logo.png',
+                          width: 24, height: 24),
                       label: const Text(AppStrings.continueWithGoogle),
                     ),
                   ),
