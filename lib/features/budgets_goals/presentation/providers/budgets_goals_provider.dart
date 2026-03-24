@@ -14,6 +14,7 @@ import 'package:betty_app/features/budgets_goals/data/services/budget_spending_c
 import 'package:betty_app/features/budgets_goals/data/services/budget_alert_engine.dart';
 import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
 import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:betty_app/features/budgets_goals/data/services/inflation_adjustment_service.dart';
 
 // ══════════════════════════════════════════════════════════════
 // DataSources
@@ -35,10 +36,7 @@ class BudgetLocalDataSource {
   }
 
   Future<BudgetModel?> getByUuid(String uuid) async {
-    return await _isar.budgetModels
-        .filter()
-        .uuidEqualTo(uuid)
-        .findFirst();
+    return await _isar.budgetModels.filter().uuidEqualTo(uuid).findFirst();
   }
 
   Future<BudgetModel?> getByCategoryAndPeriod(
@@ -61,8 +59,7 @@ class BudgetLocalDataSource {
 
   Future<void> delete(String uuid) async {
     await _isar.writeTxn(() async {
-      final b =
-          await _isar.budgetModels.filter().uuidEqualTo(uuid).findFirst();
+      final b = await _isar.budgetModels.filter().uuidEqualTo(uuid).findFirst();
       if (b != null) await _isar.budgetModels.delete(b.id);
     });
   }
@@ -74,20 +71,15 @@ class GoalLocalDataSource {
 
   Future<void> save(GoalModel goal) async {
     await _isar.writeTxn(() async {
-      final existing = await _isar.goalModels
-          .filter()
-          .uuidEqualTo(goal.uuid)
-          .findFirst();
+      final existing =
+          await _isar.goalModels.filter().uuidEqualTo(goal.uuid).findFirst();
       if (existing != null) goal.id = existing.id;
       await _isar.goalModels.put(goal);
     });
   }
 
   Future<GoalModel?> getByUuid(String uuid) async {
-    return await _isar.goalModels
-        .filter()
-        .uuidEqualTo(uuid)
-        .findFirst();
+    return await _isar.goalModels.filter().uuidEqualTo(uuid).findFirst();
   }
 
   Future<List<GoalModel>> getAllActive(String userId) async {
@@ -100,12 +92,10 @@ class GoalLocalDataSource {
 
   Future<void> addSavings(String uuid, double amount) async {
     await _isar.writeTxn(() async {
-      final g =
-          await _isar.goalModels.filter().uuidEqualTo(uuid).findFirst();
+      final g = await _isar.goalModels.filter().uuidEqualTo(uuid).findFirst();
       if (g != null) {
         g.savedAmount += amount;
-        g.progress =
-            g.targetAmount > 0 ? g.savedAmount / g.targetAmount : 0;
+        g.progress = g.targetAmount > 0 ? g.savedAmount / g.targetAmount : 0;
         g.isCompleted = g.progress >= 1.0;
         g.updatedAt = DateTime.now();
         g.syncStatus = GoalSyncStatus.pending;
@@ -116,8 +106,7 @@ class GoalLocalDataSource {
 
   Future<void> delete(String uuid) async {
     await _isar.writeTxn(() async {
-      final g =
-          await _isar.goalModels.filter().uuidEqualTo(uuid).findFirst();
+      final g = await _isar.goalModels.filter().uuidEqualTo(uuid).findFirst();
       if (g != null) {
         g.isActive = false;
         g.syncStatus = GoalSyncStatus.pending;
@@ -230,8 +219,7 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
 
     // 1. Recalcular gastos reales del mes desde transacciones
     final calculator = ref.read(budgetSpendingCalculatorProvider);
-    final models =
-        await calculator.recalculateAndPersist(auth.user.supabaseId);
+    final models = await calculator.recalculateAndPersist(auth.user.supabaseId);
 
     return models
         .map((m) => BudgetEntity(
@@ -263,6 +251,8 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
     await BudgetAlertEngine.evaluate(models);
   }
 
+  /// Agrega un presupuesto para una categoría en el período actual.
+  /// Si ya existe uno para esa categoría/período, lo actualiza.
   Future<void> addBudget({
     required String categoryKey,
     required double amount,
@@ -272,67 +262,53 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
 
     final uid = auth.user.supabaseId;
     final period = BettyDateUtils.currentPeriod();
+    final ds = ref.read(budgetLocalDsProvider);
     final now = DateTime.now();
 
-    // Verificar si ya existe presupuesto para esta categoría+período
-    final existing = await ref
-        .read(budgetLocalDsProvider)
-        .getByCategoryAndPeriod(uid, categoryKey, period);
+    // Verificar si ya existe para esta categoría/período
+    final existing = await ds.getByCategoryAndPeriod(uid, categoryKey, period);
 
     if (existing != null) {
-      // Actualizar el existente en vez de crear duplicado
-      existing.budgetedAmount = amount;
-      existing.updatedAt = now;
-      existing.syncStatus = BudgetSyncStatus.pending;
-      await ref.read(budgetLocalDsProvider).save(existing);
-
-      await ref.read(syncRepositoryProvider).enqueueChange(
-            userId: uid,
-            targetCollection: 'budgets',
-            targetUuid: existing.uuid,
-            operation: SyncOperation.update,
-            payload: jsonEncode({
-              'uuid': existing.uuid,
-              'budgeted_amount': amount,
-              'updated_at': now.toIso8601String(),
-            }),
-          );
-    } else {
-      final uuid = UuidGenerator.generate();
-      final model = BudgetModel()
-        ..uuid = uuid
-        ..userId = uid
-        ..categoryKey = categoryKey
-        ..budgetedAmount = amount
-        ..spentAmount = 0
-        ..period = period
-        ..isSuggested = false
-        ..consumptionRatio = 0
-        ..createdAt = now
-        ..updatedAt = now
-        ..syncStatus = BudgetSyncStatus.pending;
-
-      await ref.read(budgetLocalDsProvider).save(model);
-
-      await ref.read(syncRepositoryProvider).enqueueChange(
-            userId: uid,
-            targetCollection: 'budgets',
-            targetUuid: uuid,
-            operation: SyncOperation.create,
-            payload: jsonEncode({
-              'uuid': uuid,
-              'user_id': uid,
-              'category_key': categoryKey,
-              'budgeted_amount': amount,
-              'spent_amount': 0,
-              'period': period,
-              'is_suggested': false,
-              'consumption_ratio': 0,
-              'created_at': now.toIso8601String(),
-              'updated_at': now.toIso8601String(),
-            }),
-          );
+      // Actualizar el existente
+      await updateBudget(uuid: existing.uuid, newAmount: amount);
+      return;
     }
+
+    // Crear nuevo
+    final uuid = UuidGenerator.generate();
+    final model = BudgetModel()
+      ..uuid = uuid
+      ..userId = uid
+      ..categoryKey = categoryKey
+      ..budgetedAmount = amount
+      ..spentAmount = 0
+      ..period = period
+      ..isSuggested = false
+      ..consumptionRatio = 0
+      ..createdAt = now
+      ..updatedAt = now
+      ..syncStatus = BudgetSyncStatus.pending;
+
+    await ds.save(model);
+
+    await ref.read(syncRepositoryProvider).enqueueChange(
+          userId: uid,
+          targetCollection: 'budgets',
+          targetUuid: uuid,
+          operation: SyncOperation.create,
+          payload: jsonEncode({
+            'uuid': uuid,
+            'user_id': uid,
+            'category_key': categoryKey,
+            'budgeted_amount': amount,
+            'spent_amount': 0,
+            'period': period,
+            'is_suggested': false,
+            'consumption_ratio': 0,
+            'created_at': now.toIso8601String(),
+            'updated_at': now.toIso8601String(),
+          }),
+        );
 
     ref.invalidate(healthProvider);
     await recalculate();
@@ -352,8 +328,7 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
 
     final now = DateTime.now();
     model.budgetedAmount = newAmount;
-    model.consumptionRatio =
-        newAmount > 0 ? model.spentAmount / newAmount : 0;
+    model.consumptionRatio = newAmount > 0 ? model.spentAmount / newAmount : 0;
     model.updatedAt = now;
     model.syncStatus = BudgetSyncStatus.pending;
     await ds.save(model);
@@ -409,9 +384,13 @@ class GoalsNotifier extends AsyncNotifier<List<GoalEntity>> {
   Future<List<GoalEntity>> _load() async {
     final auth = ref.read(authProvider);
     if (auth is! AuthAuthenticated) return [];
-    final models = await ref
-        .read(goalLocalDsProvider)
-        .getAllActive(auth.user.supabaseId);
+
+    // Ajuste diario por inflación (se ejecuta máximo 1 vez al día)
+    final inflationService = ref.read(inflationServiceProvider);
+    await inflationService.adjustIfNeeded(auth.user.supabaseId);
+
+    final models =
+        await ref.read(goalLocalDsProvider).getAllActive(auth.user.supabaseId);
     return models
         .map((m) => GoalEntity(
               uuid: m.uuid,
@@ -492,10 +471,10 @@ class GoalsNotifier extends AsyncNotifier<List<GoalEntity>> {
     if (model == null) return;
 
     await ref.read(isarProvider).writeTxn(() async {
-      model.savedAmount = (model.savedAmount - amount).clamp(0, double.infinity);
-      model.progress = model.targetAmount > 0
-          ? model.savedAmount / model.targetAmount
-          : 0;
+      model.savedAmount =
+          (model.savedAmount - amount).clamp(0, double.infinity);
+      model.progress =
+          model.targetAmount > 0 ? model.savedAmount / model.targetAmount : 0;
       model.isCompleted = model.progress >= 1.0;
       model.updatedAt = DateTime.now();
       model.syncStatus = GoalSyncStatus.pending;
@@ -525,8 +504,7 @@ class GoalsNotifier extends AsyncNotifier<List<GoalEntity>> {
     if (name != null) model.name = name;
     if (targetAmount != null) {
       model.targetAmount = targetAmount;
-      model.progress =
-          targetAmount > 0 ? model.savedAmount / targetAmount : 0;
+      model.progress = targetAmount > 0 ? model.savedAmount / targetAmount : 0;
       model.isCompleted = model.progress >= 1.0;
     }
     if (deadline != null) model.deadline = deadline;
@@ -565,7 +543,10 @@ class GoalsNotifier extends AsyncNotifier<List<GoalEntity>> {
   }
 }
 
-final goalsProvider =
-    AsyncNotifierProvider<GoalsNotifier, List<GoalEntity>>(
+final goalsProvider = AsyncNotifierProvider<GoalsNotifier, List<GoalEntity>>(
   GoalsNotifier.new,
 );
+
+final inflationServiceProvider = Provider<InflationAdjustmentService>((ref) {
+  return InflationAdjustmentService(ref.watch(isarProvider));
+});

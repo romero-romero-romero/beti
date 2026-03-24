@@ -12,9 +12,9 @@ final healthProvider = FutureProvider<HealthResult>((ref) async {
   final authState = ref.watch(authProvider);
   if (authState is! AuthAuthenticated) {
     return const HealthResult(
-      score: 50,
-      level: HealthLevel.stable,
-      message: 'Inicia sesión para ver tu salud financiera',
+      score: 0,
+      level: HealthLevel.peace,
+      message: 'Inicia sesión para ver tu salud financiera. 🔐',
       totalIncome: 0,
       totalExpenses: 0,
       expenseToIncomeRatio: 0,
@@ -25,5 +25,7 @@ final healthProvider = FutureProvider<HealthResult>((ref) async {
     );
   }
 
-  return await ref.read(healthEngineProvider).calculate(authState.user.supabaseId);
+  return await ref
+      .read(healthEngineProvider)
+      .calculate(authState.user.supabaseId);
 });

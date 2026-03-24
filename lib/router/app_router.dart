@@ -9,6 +9,8 @@ import 'package:betty_app/features/transactions/presentation/screens/preview_cor
 import 'package:betty_app/features/input_capture/presentation/screens/voice_capture_screen.dart';
 import 'package:betty_app/features/input_capture/presentation/screens/ocr_capture_screen.dart';
 import 'package:betty_app/features/cards_credits/presentation/screens/add_card_screen.dart';
+import 'package:betty_app/features/budgets_goals/presentation/screens/add_budget_screen.dart';
+import 'package:betty_app/features/budgets_goals/presentation/screens/add_goal_screen.dart';
 
 /// Provider de GoRouter que reacciona al estado de autenticación.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -71,6 +73,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/add-card',
         name: 'addCard',
         builder: (context, state) => const AddCardScreen(),
+      ),
+      GoRoute(
+        path: '/add-budget',
+        name: 'addBudget',
+        builder: (context, state) => const AddBudgetScreen(),
+      ),
+      GoRoute(
+        path: '/add-goal',
+        name: 'addGoal',
+        builder: (context, state) => const AddGoalScreen(),
       ),
     ],
   );

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:betty_app/core/constants/app_colors.dart';
+import 'package:betty_app/core/utils/currency_formatter.dart';
+import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:betty_app/features/budgets_goals/data/services/budget_spending_calculator.dart';
 
-/// Pantalla de Presupuestos y Metas de Ahorro.
-///
-/// Tabs: Presupuestos | Metas
-/// Cada sección muestra barras de progreso minimalistas.
 class BudgetsGoalsScreen extends ConsumerStatefulWidget {
   const BudgetsGoalsScreen({super.key});
 
@@ -28,7 +28,6 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Header ──
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Text(
@@ -39,8 +38,6 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // ── Tab selector ──
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
@@ -62,8 +59,6 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // ── Content ──
             Expanded(
               child: _tabIndex == 0
                   ? _BudgetsContent(isDark: isDark)
@@ -75,6 +70,10 @@ class _BudgetsGoalsScreenState extends ConsumerState<BudgetsGoalsScreen> {
     );
   }
 }
+
+// ══════════════════════════════════════════════════════════════
+// Tab Button
+// ══════════════════════════════════════════════════════════════
 
 class _TabButton extends StatelessWidget {
   final String label;
@@ -116,46 +115,142 @@ class _TabButton extends StatelessWidget {
   }
 }
 
-class _BudgetsContent extends StatelessWidget {
-  final bool isDark;
+// ══════════════════════════════════════════════════════════════
+// Budgets Content — Conectado a datos reales
+// ══════════════════════════════════════════════════════════════
 
+class _BudgetsContent extends ConsumerWidget {
+  final bool isDark;
   const _BudgetsContent({required this.isDark});
+
+  static const _categoryLabels = {
+    'food': 'Comida',
+    'groceries': 'Despensa',
+    'transport': 'Transporte',
+    'housing': 'Vivienda',
+    'utilities': 'Servicios',
+    'health': 'Salud',
+    'education': 'Educación',
+    'entertainment': 'Entretenimiento',
+    'clothing': 'Ropa',
+    'subscriptions': 'Suscripciones',
+    'debtPayment': 'Deudas',
+    'personalCare': 'Cuidado personal',
+    'gifts': 'Regalos',
+    'pets': 'Mascotas',
+    'other': 'Otros',
+  };
+
+  static const _categoryIcons = {
+    'food': Icons.restaurant,
+    'groceries': Icons.shopping_cart,
+    'transport': Icons.directions_car,
+    'housing': Icons.home,
+    'utilities': Icons.bolt,
+    'health': Icons.favorite,
+    'education': Icons.school,
+    'entertainment': Icons.movie,
+    'clothing': Icons.checkroom,
+    'subscriptions': Icons.subscriptions,
+    'debtPayment': Icons.credit_card,
+    'personalCare': Icons.spa,
+    'gifts': Icons.card_giftcard,
+    'pets': Icons.pets,
+    'other': Icons.more_horiz,
+  };
+
+  Color _statusColor(BudgetCategoryStatus status) {
+    return switch (status) {
+      BudgetCategoryStatus.green => AppColors.primary,
+      BudgetCategoryStatus.yellow => Colors.amber.shade700,
+      BudgetCategoryStatus.red => Colors.red,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final budgetsAsync = ref.watch(budgetsProvider);
+    final summaryAsync = ref.watch(budgetMonthSummaryProvider);
+
+    return budgetsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (budgets) {
+        if (budgets.isEmpty) {
+          return _EmptyBudgets(isDark: isDark);
+        }
+
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async => ref.read(budgetsProvider.notifier).recalculate(),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              // ── Resumen mensual ──
+              summaryAsync.when(
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+                data: (summary) {
+                  if (summary == null) return const SizedBox.shrink();
+                  return _MonthSummaryCard(summary: summary, isDark: isDark);
+                },
+              ),
+              const SizedBox(height: 16),
+
+              // ── Lista de presupuestos ──
+              ...budgets.map((b) => _BudgetTile(
+                    budget: b,
+                    label: _categoryLabels[b.categoryKey] ?? b.categoryKey,
+                    icon: _categoryIcons[b.categoryKey] ?? Icons.category,
+                    statusColor: _statusColor(b.status),
+                    isDark: isDark,
+                    onDelete: () => ref.read(budgetsProvider.notifier).deleteBudget(b.uuid),
+                  )),
+
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.pushNamed('addBudget'),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Agregar presupuesto'),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EmptyBudgets extends StatelessWidget {
+  final bool isDark;
+  const _EmptyBudgets({required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Conectar con budgets provider
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.pie_chart_outline,
-              size: 48,
-              color: isDark ? AppColors.grey : AppColors.lightGrey,
-            ),
+            Icon(Icons.pie_chart_outline, size: 48,
+                color: isDark ? AppColors.grey : AppColors.lightGrey),
             const SizedBox(height: 12),
-            Text(
-              'Configura tus presupuestos',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-              ),
-            ),
+            Text('Configura tus presupuestos',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
             const SizedBox(height: 4),
-            Text(
-              'Define límites por categoría para\ncontrolar tus gastos',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
-            ),
+            Text('Define límites por categoría para\ncontrolar tus gastos',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
             const SizedBox(height: 20),
             OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: () => context.pushNamed('addBudget'),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Agregar presupuesto'),
             ),
@@ -166,49 +261,296 @@ class _BudgetsContent extends StatelessWidget {
   }
 }
 
-class _GoalsContent extends StatelessWidget {
+class _MonthSummaryCard extends StatelessWidget {
+  final BudgetMonthSummary summary;
   final bool isDark;
-
-  const _GoalsContent({required this.isDark});
+  const _MonthSummaryCard({required this.summary, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Conectar con goals provider
+    final color = switch (summary.healthLevel) {
+      BudgetHealthLevel.green => AppColors.primary,
+      BudgetHealthLevel.yellow => Colors.amber.shade700,
+      BudgetHealthLevel.red => Colors.red,
+    };
+    final pct = (summary.overallRatio * 100).clamp(0, 999).toStringAsFixed(0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Presupuesto del mes',
+                    style: TextStyle(fontSize: 11,
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                const SizedBox(height: 4),
+                Text('${CurrencyFormatter.format(summary.totalExpenses)} de ${CurrencyFormatter.format(summary.totalBudgeted)}',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
+                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
+                const SizedBox(height: 2),
+                Text('Disponible: ${CurrencyFormatter.format(summary.available)}',
+                    style: TextStyle(fontSize: 12, color: color)),
+              ],
+            ),
+          ),
+          Container(
+            width: 52, height: 52,
+            decoration: BoxDecoration(shape: BoxShape.circle,
+                color: color.withValues(alpha: 0.15)),
+            child: Center(
+              child: Text('$pct%',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BudgetTile extends StatelessWidget {
+  final BudgetEntity budget;
+  final String label;
+  final IconData icon;
+  final Color statusColor;
+  final bool isDark;
+  final VoidCallback onDelete;
+
+  const _BudgetTile({
+    required this.budget,
+    required this.label,
+    required this.icon,
+    required this.statusColor,
+    required this.isDark,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (budget.consumptionRatio * 100).clamp(0, 999).toStringAsFixed(0);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: statusColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
+                      Text('${CurrencyFormatter.format(budget.spentAmount)} de ${CurrencyFormatter.format(budget.budgetedAmount)}',
+                          style: TextStyle(fontSize: 11,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                    ],
+                  ),
+                ),
+                Text('$pct%', style: TextStyle(fontSize: 14,
+                    fontWeight: FontWeight.bold, color: statusColor)),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: onDelete,
+                  child: Icon(Icons.close, size: 16,
+                      color: isDark ? AppColors.grey : Colors.grey.shade400),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: budget.consumptionRatio.clamp(0, 1),
+                backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                minHeight: 5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// Goals Content — Conectado a datos reales
+// ══════════════════════════════════════════════════════════════
+
+class _GoalsContent extends ConsumerWidget {
+  final bool isDark;
+  const _GoalsContent({required this.isDark});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goalsAsync = ref.watch(goalsProvider);
+
+    return goalsAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      error: (e, _) => Center(child: Text('Error: $e')),
+      data: (goals) {
+        if (goals.isEmpty) {
+          return _EmptyGoals(isDark: isDark);
+        }
+
+        return RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            ref.invalidate(goalsProvider);
+          },
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              ...goals.map((g) => _GoalTile(goal: g, isDark: isDark, ref: ref)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => context.pushNamed('addGoal'),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Nueva meta'),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EmptyGoals extends StatelessWidget {
+  final bool isDark;
+  const _EmptyGoals({required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.flag_outlined,
-              size: 48,
-              color: isDark ? AppColors.grey : AppColors.lightGrey,
-            ),
+            Icon(Icons.flag_outlined, size: 48,
+                color: isDark ? AppColors.grey : AppColors.lightGrey),
             const SizedBox(height: 12),
-            Text(
-              'Crea tu primera meta',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-              ),
-            ),
+            Text('Crea tu primera meta',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
             const SizedBox(height: 4),
-            Text(
-              'Define un objetivo de ahorro y\nsigue tu progreso',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
-            ),
+            Text('Define un objetivo de ahorro y\nsigue tu progreso',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12,
+                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
             const SizedBox(height: 20),
             OutlinedButton.icon(
-              onPressed: () {},
+              onPressed: () => context.pushNamed('addGoal'),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('Nueva meta'),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GoalTile extends StatelessWidget {
+  final GoalEntity goal;
+  final bool isDark;
+  final WidgetRef ref;
+
+  const _GoalTile({required this.goal, required this.isDark, required this.ref});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (goal.progress * 100).clamp(0, 999).toStringAsFixed(0);
+    final color = goal.isCompleted ? AppColors.primary : Colors.blue;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.surfaceDark : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? Colors.white.withValues(alpha: 0.06) : Colors.grey.shade200,
+          ),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Icon(goal.isCompleted ? Icons.check_circle : Icons.flag_outlined,
+                    size: 20, color: color),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(goal.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500,
+                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
+                      Text('${CurrencyFormatter.format(goal.savedAmount)} de ${CurrencyFormatter.format(goal.targetAmount)}',
+                          style: TextStyle(fontSize: 11,
+                              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                    ],
+                  ),
+                ),
+                Text('$pct%', style: TextStyle(fontSize: 14,
+                    fontWeight: FontWeight.bold, color: color)),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => ref.read(goalsProvider.notifier).deleteGoal(goal.uuid),
+                  child: Icon(Icons.close, size: 16,
+                      color: isDark ? AppColors.grey : Colors.grey.shade400),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: goal.progress.clamp(0, 1),
+                backgroundColor: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade200,
+                valueColor: AlwaysStoppedAnimation<Color>(color),
+                minHeight: 5,
+              ),
+            ),
+            if (goal.suggestedMonthlyContribution != null && !goal.isCompleted) ...[
+              const SizedBox(height: 6),
+              Text(
+                'Ahorra ${CurrencyFormatter.format(goal.suggestedMonthlyContribution!)} /mes para cumplir a tiempo',
+                style: TextStyle(fontSize: 10, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+              ),
+            ],
+            if (goal.deadline != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Fecha límite: ${goal.deadline!.day}/${goal.deadline!.month}/${goal.deadline!.year}',
+                style: TextStyle(fontSize: 10, color: isDark ? AppColors.grey : Colors.grey),
+              ),
+            ],
           ],
         ),
       ),
