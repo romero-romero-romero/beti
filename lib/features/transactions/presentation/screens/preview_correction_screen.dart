@@ -7,6 +7,7 @@ import 'package:betty_app/core/utils/currency_formatter.dart';
 import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:betty_app/features/intelligence/presentation/providers/category_learning_provider.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
 
 /// Pantalla de Vista Previa obligatoria.
 /// El usuario DEBE confirmar los datos antes de guardar.
@@ -34,15 +35,17 @@ class _PreviewCorrectionScreenState
   }
 
   Future<void> _confirm() async {
+    if (_saving) return;
     setState(() => _saving = true);
+
+    final navigator = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       final authState = ref.read(authProvider);
-      final userId = authState is AuthAuthenticated
-          ? authState.user.supabaseId
-          : '';
+      final userId =
+          authState is AuthAuthenticated ? authState.user.supabaseId : '';
 
-      // Feedback loop: si el usuario corrigió la categoría, aprender
       final currentDraft = ref.read(transactionFormProvider);
       if (_originalCategory != null &&
           _originalCategory != currentDraft.category) {
@@ -54,28 +57,31 @@ class _PreviewCorrectionScreenState
         );
       }
 
-      final entity = ref
-          .read(transactionFormProvider.notifier)
-          .toEntity(userId);
+      final entity =
+          ref.read(transactionFormProvider.notifier).toEntity(userId);
 
       await ref.read(transactionsProvider.notifier).save(entity);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Movimiento guardado'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        context.go('/home');
-      }
+      // Invalidar salud financiera para que se recalcule
+      ref.invalidate(healthProvider);
+
+      // 1. Navegar PRIMERO
+      navigator.go('/home');
+
+      // 2. Resetear DESPUÉS (el widget ya no está visible)
+      ref.read(transactionFormProvider.notifier).reset();
+
+      // 3. SnackBar al final
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Movimiento guardado'),
+          backgroundColor: Colors.green,
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
       if (mounted) setState(() => _saving = false);
     }
   }
@@ -290,8 +296,8 @@ class _DetailRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label,
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: Colors.grey)),
+                  style:
+                      theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
               const SizedBox(height: 2),
               Text(value, style: theme.textTheme.bodyLarge),
             ],

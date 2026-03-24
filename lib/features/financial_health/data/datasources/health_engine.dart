@@ -124,12 +124,16 @@ class HealthEngine {
       ratio: ratio,
       totalDebt: totalDebt,
       totalIncome: totalIncome,
+      totalExpenses: totalExpenses,
       creditUtil: creditUtil,
       overduePayments: overduePayments,
       goalProgress: goalProgressAvg,
     );
 
-    final hasActivity = totalIncome > 0 || totalDebt > 0 || goalProgressAvg > 0;
+    final hasActivity = totalIncome > 0 ||
+        totalExpenses > 0 ||
+        totalDebt > 0 ||
+        goalProgressAvg > 0;
     final level = _scoreToLevel(score);
     final message = hasActivity
         ? _levelToMessage(level)
@@ -182,6 +186,7 @@ class HealthEngine {
     required double ratio,
     required double totalDebt,
     required double totalIncome,
+    required double totalExpenses,
     required double creditUtil,
     required int overduePayments,
     required double goalProgress,
@@ -189,7 +194,10 @@ class HealthEngine {
     // ── Guarda: sin datos financieros, no hay score válido ──
     // Si no hay ingresos, gastos, deuda ni metas, el usuario aún no
     // tiene actividad. Retornar 0 en vez de un score inflado.
-    final hasActivity = totalIncome > 0 || totalDebt > 0 || goalProgress > 0;
+    final hasActivity = totalIncome > 0 ||
+        totalExpenses > 0 ||
+        totalDebt > 0 ||
+        goalProgress > 0;
     if (!hasActivity) return 0;
 
     // Componente 1: Ratio gasto/ingreso (35%)
@@ -244,7 +252,7 @@ class HealthEngine {
         (goalScore * FinancialConstants.weightGoalProgress);
   }
 
- HealthLevel _scoreToLevel(double score) {
+  HealthLevel _scoreToLevel(double score) {
     if (score == 0) return HealthLevel.peace; // Sin datos = estado neutro
     if (score >= 80) return HealthLevel.peace;
     if (score >= 60) return HealthLevel.stable;

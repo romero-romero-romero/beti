@@ -44,10 +44,14 @@ class ProfileScreen extends ConsumerWidget {
                   final user = authState.user;
                   email = user.email;
 
-                  if (user.displayName != null && user.displayName!.trim().isNotEmpty) {
+                  if (user.displayName != null &&
+                      user.displayName!.trim().isNotEmpty) {
                     displayName = user.displayName!.trim();
                     // Iniciales: primera letra de cada palabra (máx 2)
-                    final parts = displayName.split(' ').where((p) => p.isNotEmpty).toList();
+                    final parts = displayName
+                        .split(' ')
+                        .where((p) => p.isNotEmpty)
+                        .toList();
                     initials = parts.length >= 2
                         ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
                         : parts[0][0].toUpperCase();
@@ -91,7 +95,9 @@ class ProfileScreen extends ConsumerWidget {
                           email,
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                           ),
                         ),
                       ],
@@ -203,12 +209,38 @@ class ProfileScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: () {
-                    ref.read(authProvider.notifier).signOut();
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Cerrar sesión'),
+                        content: const Text(
+                          'Se borrarán todos los datos locales. '
+                          'Tus datos respaldados en la nube se mantendrán.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancelar'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.expense,
+                            ),
+                            child: const Text('Cerrar sesión'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed == true) {
+                      await ref.read(authProvider.notifier).signOut();
+                    }
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.expense,
-                    side: BorderSide(color: AppColors.expense.withValues(alpha: 0.3)),
+                    side: BorderSide(
+                        color: AppColors.expense.withValues(alpha: 0.3)),
                   ),
                   child: const Text('Cerrar sesión'),
                 ),
@@ -218,7 +250,7 @@ class ProfileScreen extends ConsumerWidget {
               // ── Versión ──
               Center(
                 child: Text(
-                  'Betty v1.0.0',
+                  'Beti v1.0.0',
                   style: TextStyle(
                     fontSize: 11,
                     color: isDark ? AppColors.grey : AppColors.lightGrey,
@@ -251,7 +283,8 @@ class _SectionHeader extends StatelessWidget {
       style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.w600,
-        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+        color:
+            isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
         letterSpacing: 0.5,
       ),
     );
@@ -312,7 +345,9 @@ class _SettingsRow extends StatelessWidget {
               icon,
               size: 18,
               color: titleColor ??
-                  (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                  (isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight),
             ),
           ),
           const SizedBox(width: 12),
@@ -326,14 +361,18 @@ class _SettingsRow extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: titleColor ??
-                        (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                        (isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight),
                   ),
                 ),
                 Text(
                   subtitle,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   ),
                 ),
               ],
