@@ -79,8 +79,9 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen>
     if (result.amount != null) formNotifier.updateAmount(result.amount!);
     formNotifier.updateType(result.type);
     formNotifier.updateDescription(result.description);
-    if (result.categoryAutoAssigned)
+    if (result.categoryAutoAssigned) {
       formNotifier.updateCategory(result.category);
+    }
     if (result.date != null) formNotifier.updateDate(result.date!);
     formNotifier.updateInputMethod(InputMethod.voice);
     formNotifier.updateRawInput(text);
@@ -436,8 +437,12 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen>
   /// Aproximación de sin(x) sin importar dart:math
   double _sin(double x) {
     // Normalizar x a [-pi, pi]
-    while (x > 3.14159) x -= 6.28318;
-    while (x < -3.14159) x += 6.28318;
+    while (x > 3.14159) {
+      x -= 6.28318;
+    }
+    while (x < -3.14159) {
+      x += 6.28318;
+    }
     // Taylor series: sin(x) ≈ x - x³/6 + x⁵/120
     final x3 = x * x * x;
     final x5 = x3 * x * x;

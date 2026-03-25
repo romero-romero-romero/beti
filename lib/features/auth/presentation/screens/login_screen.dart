@@ -95,10 +95,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.account_balance_wallet_rounded,
-                    size: size.height * 0.12,
-                    color: Theme.of(context).colorScheme.primary,
+                  Image.asset(
+                    'assets/images/Beti-icon.png',
+                    width: size.height * 0.12,
+                    height: size.height * 0.12,
                   ),
                   SizedBox(height: size.height * 0.02),
                   Text(
@@ -204,7 +204,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     height: 50,
                     child: OutlinedButton.icon(
                       onPressed: isLoading ? null : _signInWithGoogle,
-                      icon: const Icon(Icons.g_mobiledata, size: 24),
+                      icon: Image.asset('assets/images/google_logo.png',
+                          width: 24, height: 24),
                       label: const Text(AppStrings.continueWithGoogle),
                     ),
                   ),
