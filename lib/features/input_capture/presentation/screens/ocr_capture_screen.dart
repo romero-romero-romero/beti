@@ -7,6 +7,7 @@ import 'package:betty_app/core/enums/input_method.dart';
 import 'package:betty_app/features/input_capture/presentation/providers/input_capture_provider.dart';
 import 'package:betty_app/features/intelligence/data/datasources/nlp_entity_extractor.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 /// Pantalla de captura por foto de ticket (OCR).
 /// El usuario toma una foto o la selecciona de galería.
@@ -47,6 +48,14 @@ class _OcrCaptureScreenState extends ConsumerState<OcrCaptureScreen> {
     }
   }
 
+  String _paymentLabel(PaymentMethod m) => switch (m) {
+        PaymentMethod.cash => 'Efectivo',
+        PaymentMethod.debitCard => 'Tarjeta de débito',
+        PaymentMethod.creditCard => 'Tarjeta de crédito',
+        PaymentMethod.transfer => 'Transferencia',
+        PaymentMethod.other => 'Otro',
+      };
+
   void _useResult() {
     final ocr = ref.read(ocrProvider);
     if (ocr.result == null) return;
@@ -59,6 +68,7 @@ class _OcrCaptureScreenState extends ConsumerState<OcrCaptureScreen> {
       amount: ocrResult.amount,
       date: ocrResult.date,
       concept: ocrResult.concept,
+      paymentMethod: ocrResult.paymentMethod,
     );
 
     final formNotifier = ref.read(transactionFormProvider.notifier);
@@ -82,6 +92,10 @@ class _OcrCaptureScreenState extends ConsumerState<OcrCaptureScreen> {
     // Marcar como input por OCR
     formNotifier.updateInputMethod(InputMethod.ocr);
     formNotifier.updateRawInput(ocrResult.rawText);
+
+    if (nlp.paymentMethod != null) {
+      formNotifier.updatePaymentMethod(nlp.paymentMethod);
+    }
 
     // Guardar path de la imagen para referencia
     if (_selectedImage != null) {
@@ -117,7 +131,7 @@ class _OcrCaptureScreenState extends ConsumerState<OcrCaptureScreen> {
           children: [
             // ── Imagen seleccionada o placeholder ──
             Expanded(
-              flex: 3,
+              flex: 2,
               child: _selectedImage != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(16),
@@ -171,7 +185,7 @@ class _OcrCaptureScreenState extends ConsumerState<OcrCaptureScreen> {
 
             if (ocr.status == OcrStatus.done && ocr.result != null)
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -185,32 +199,54 @@ class _OcrCaptureScreenState extends ConsumerState<OcrCaptureScreen> {
                           ),
                         ),
                         const Divider(),
-                        if (ocr.result!.amount != null)
-                          _OcrField(
-                            icon: Icons.attach_money,
-                            label: 'Monto',
-                            value: '\$${ocr.result!.amount!.toStringAsFixed(2)}',
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              children: [
+                                if (ocr.result!.amount != null)
+                                  _OcrField(
+                                    icon: Icons.attach_money,
+                                    label: 'Monto',
+                                    value:
+                                        '\$${ocr.result!.amount!.toStringAsFixed(2)}',
+                                  ),
+                                if (ocr.result!.date != null)
+                                  _OcrField(
+                                    icon: Icons.calendar_today,
+                                    label: 'Fecha',
+                                    value:
+                                        '${ocr.result!.date!.day}/${ocr.result!.date!.month}/${ocr.result!.date!.year}',
+                                  ),
+                                if (ocr.result!.concept != null)
+                                  _OcrField(
+                                    icon: Icons.store,
+                                    label: 'Concepto',
+                                    value: ocr.result!.concept!,
+                                  ),
+                                if (ocr.result!.paymentMethod != null)
+                                  _OcrField(
+                                    icon: Icons.credit_card,
+                                    label: 'Método de pago',
+                                    value: _paymentLabel(
+                                        ocr.result!.paymentMethod!),
+                                  ),
+                                if (ocr.result!.cardLastFour != null)
+                                  _OcrField(
+                                    icon: Icons.pin,
+                                    label: 'Tarjeta',
+                                    value: '****${ocr.result!.cardLastFour!}',
+                                  ),
+                                if (ocr.result!.amount == null &&
+                                    ocr.result!.concept == null)
+                                  const Text(
+                                    'No se detectaron datos claros. Puedes ingresarlos manualmente.',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                              ],
+                            ),
                           ),
-                        if (ocr.result!.date != null)
-                          _OcrField(
-                            icon: Icons.calendar_today,
-                            label: 'Fecha',
-                            value:
-                                '${ocr.result!.date!.day}/${ocr.result!.date!.month}/${ocr.result!.date!.year}',
-                          ),
-                        if (ocr.result!.concept != null)
-                          _OcrField(
-                            icon: Icons.store,
-                            label: 'Concepto',
-                            value: ocr.result!.concept!,
-                          ),
-                        if (ocr.result!.amount == null &&
-                            ocr.result!.concept == null)
-                          const Text(
-                            'No se detectaron datos claros. Puedes ingresarlos manualmente.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        const Spacer(),
+                        ),
+                        const SizedBox(height: 8),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(

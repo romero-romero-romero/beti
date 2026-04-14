@@ -6,6 +6,7 @@ import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/core/enums/transaction_type.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
 import 'package:betty_app/features/transactions/presentation/widgets/category_picker.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   const AddTransactionScreen({super.key});
@@ -259,6 +260,28 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             ),
             const SizedBox(height: 20),
 
+            // ── Método de pago ──
+            Text('Método de pago', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Row(
+              children: PaymentMethod.values
+                  .where((m) => m != PaymentMethod.other)
+                  .map((method) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: _PaymentChip(
+                            method: method,
+                            selected: draft.paymentMethod == method,
+                            onTap: () => ref
+                                .read(transactionFormProvider.notifier)
+                                .updatePaymentMethod(method),
+                          ),
+                        ),
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(height: 20),
+
             // ── Notas ──
             Text('Notas (opcional)', style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
@@ -420,4 +443,63 @@ class _TypeChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PaymentChip extends StatelessWidget {
+  final PaymentMethod method;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PaymentChip({
+    required this.method,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? Theme.of(context).colorScheme.primary : Colors.grey;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? color : Colors.grey.shade300,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(_iconFor(method), size: 18, color: color),
+            const SizedBox(height: 4),
+            Text(
+              _labelFor(method),
+              style: TextStyle(fontSize: 10, color: color),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _iconFor(PaymentMethod m) => switch (m) {
+        PaymentMethod.cash => Icons.money_rounded,
+        PaymentMethod.debitCard => Icons.credit_card_outlined,
+        PaymentMethod.creditCard => Icons.credit_card,
+        PaymentMethod.transfer => Icons.swap_horiz_rounded,
+        PaymentMethod.other => Icons.more_horiz,
+      };
+
+  String _labelFor(PaymentMethod m) => switch (m) {
+        PaymentMethod.cash => 'Efectivo',
+        PaymentMethod.debitCard => 'Débito',
+        PaymentMethod.creditCard => 'Crédito',
+        PaymentMethod.transfer => 'Transfer.',
+        PaymentMethod.other => 'Otro',
+      };
 }

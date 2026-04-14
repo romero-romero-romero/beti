@@ -1,6 +1,7 @@
 import 'package:betty_app/core/enums/transaction_type.dart';
 import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/features/intelligence/data/datasources/categorization_engine.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 /// Resultado estructurado de la extracción NLP.
 class NlpExtractionResult {
@@ -10,7 +11,7 @@ class NlpExtractionResult {
   final CategoryType category;
   final bool categoryAutoAssigned;
   final DateTime? date;
-  final String? paymentMethod;
+  final PaymentMethod? paymentMethod;
   final String rawInput;
 
   const NlpExtractionResult({
@@ -51,9 +52,8 @@ class NlpEntityExtractor {
     final categoryAuto = category != CategoryType.other;
 
     // Si la categoría sugiere ingreso, respetar eso sobre el verbo
-    final finalType = categoryAuto
-        ? CategorizationEngine.inferType(category)
-        : type;
+    final finalType =
+        categoryAuto ? CategorizationEngine.inferType(category) : type;
 
     return NlpExtractionResult(
       amount: amount,
@@ -74,12 +74,14 @@ class NlpEntityExtractor {
     double? amount,
     DateTime? date,
     String? concept,
+    PaymentMethod? paymentMethod,
   }) {
-    final description = concept ?? _extractDescription(
-      _normalize(rawText),
-      amount,
-      date,
-    );
+    final description = concept ??
+        _extractDescription(
+          _normalize(rawText),
+          amount,
+          date,
+        );
     final category = CategorizationEngine.predict(description);
     final categoryAuto = category != CategoryType.other;
     final type = categoryAuto
@@ -93,7 +95,7 @@ class NlpEntityExtractor {
       category: category,
       categoryAutoAssigned: categoryAuto,
       date: date,
-      paymentMethod: null,
+      paymentMethod: paymentMethod,
       rawInput: rawText,
     );
   }
@@ -142,32 +144,68 @@ class NlpEntityExtractor {
 
     // Mapas de valores
     const units = {
-      'un': 1, 'uno': 1, 'una': 1,
-      'dos': 2, 'tres': 3, 'cuatro': 4, 'cinco': 5,
-      'seis': 6, 'siete': 7, 'ocho': 8, 'nueve': 9,
+      'un': 1,
+      'uno': 1,
+      'una': 1,
+      'dos': 2,
+      'tres': 3,
+      'cuatro': 4,
+      'cinco': 5,
+      'seis': 6,
+      'siete': 7,
+      'ocho': 8,
+      'nueve': 9,
     };
     const teens = {
-      'diez': 10, 'once': 11, 'doce': 12, 'trece': 13,
-      'catorce': 14, 'quince': 15, 'dieciseis': 16,
-      'diecisiete': 17, 'dieciocho': 18, 'diecinueve': 19,
+      'diez': 10,
+      'once': 11,
+      'doce': 12,
+      'trece': 13,
+      'catorce': 14,
+      'quince': 15,
+      'dieciseis': 16,
+      'diecisiete': 17,
+      'dieciocho': 18,
+      'diecinueve': 19,
     };
     const tens = {
-      'veinte': 20, 'veintiuno': 21, 'veintidos': 22, 'veintitres': 23,
-      'veinticuatro': 24, 'veinticinco': 25, 'veintiseis': 26,
-      'veintisiete': 27, 'veintiocho': 28, 'veintinueve': 29,
-      'treinta': 30, 'cuarenta': 40, 'cincuenta': 50,
-      'sesenta': 60, 'setenta': 70, 'ochenta': 80, 'noventa': 90,
+      'veinte': 20,
+      'veintiuno': 21,
+      'veintidos': 22,
+      'veintitres': 23,
+      'veinticuatro': 24,
+      'veinticinco': 25,
+      'veintiseis': 26,
+      'veintisiete': 27,
+      'veintiocho': 28,
+      'veintinueve': 29,
+      'treinta': 30,
+      'cuarenta': 40,
+      'cincuenta': 50,
+      'sesenta': 60,
+      'setenta': 70,
+      'ochenta': 80,
+      'noventa': 90,
     };
     const hundreds = {
-      'cien': 100, 'ciento': 100,
-      'doscientos': 200, 'doscientas': 200,
-      'trescientos': 300, 'trescientas': 300,
-      'cuatrocientos': 400, 'cuatrocientas': 400,
-      'quinientos': 500, 'quinientas': 500,
-      'seiscientos': 600, 'seiscientas': 600,
-      'setecientos': 700, 'setecientas': 700,
-      'ochocientos': 800, 'ochocientas': 800,
-      'novecientos': 900, 'novecientas': 900,
+      'cien': 100,
+      'ciento': 100,
+      'doscientos': 200,
+      'doscientas': 200,
+      'trescientos': 300,
+      'trescientas': 300,
+      'cuatrocientos': 400,
+      'cuatrocientas': 400,
+      'quinientos': 500,
+      'quinientas': 500,
+      'seiscientos': 600,
+      'seiscientas': 600,
+      'setecientos': 700,
+      'setecientas': 700,
+      'ochocientos': 800,
+      'ochocientas': 800,
+      'novecientos': 900,
+      'novecientas': 900,
     };
 
     // Buscar secuencia de palabras numéricas contiguas
@@ -198,7 +236,8 @@ class NlpEntityExtractor {
     if (startIdx == null) return null;
 
     // Componer el valor numérico
-    final numWords = words.sublist(startIdx, (endIdx ?? startIdx) + 1)
+    final numWords = words
+        .sublist(startIdx, (endIdx ?? startIdx) + 1)
         .where((w) => w != 'y' && w != 'pesos' && w != 'varos' && w != 'bolas')
         .toList();
 
@@ -243,9 +282,18 @@ class NlpEntityExtractor {
 
     // Patrón: "15 de marzo", "3 de enero del 2026"
     final monthNames = {
-      'enero': 1, 'febrero': 2, 'marzo': 3, 'abril': 4,
-      'mayo': 5, 'junio': 6, 'julio': 7, 'agosto': 8,
-      'septiembre': 9, 'octubre': 10, 'noviembre': 11, 'diciembre': 12,
+      'enero': 1,
+      'febrero': 2,
+      'marzo': 3,
+      'abril': 4,
+      'mayo': 5,
+      'junio': 6,
+      'julio': 7,
+      'agosto': 8,
+      'septiembre': 9,
+      'octubre': 10,
+      'noviembre': 11,
+      'diciembre': 12,
     };
 
     final namedDateRegex = RegExp(
@@ -292,26 +340,31 @@ class NlpEntityExtractor {
   // Extracción de método de pago
   // ═══════════════════════════════════════════════════════════
 
-  static String? _extractPaymentMethod(String text) {
-    // Tarjeta de crédito/débito
-    if (RegExp(r'tarjeta\s*(de\s*)?(credito|debito)?|tdc|tdd').hasMatch(text)) {
-      if (text.contains('debito') || text.contains('tdd')) {
-        return 'debito';
-      }
-      return 'credito';
+  static PaymentMethod? _extractPaymentMethod(String text) {
+    if (RegExp(r'tarjeta\s*(de\s*)?debito|tdd|con\s+debito').hasMatch(text)) {
+      return PaymentMethod.debitCard;
     }
 
-    // Transferencia
-    if (RegExp(r'transferencia|spei|clabe|deposito').hasMatch(text)) {
-      return 'transferencia';
+    if (RegExp(
+            r'tarjeta\s*(de\s*)?credito|tdc|con\s+credito|a\s+credito|meses\s+sin\s+intereses')
+        .hasMatch(text)) {
+      return PaymentMethod.creditCard;
     }
 
-    // Efectivo explícito
-    if (RegExp(r'efectivo|cash|billete|cambio|feria').hasMatch(text)) {
-      return 'efectivo';
+    if (RegExp(r'con\s+tarjeta|tarjeta\b|pase\s+la\s+tarjeta').hasMatch(text)) {
+      return PaymentMethod.creditCard;
     }
 
-    // Default: null (la UI puede defaultear a efectivo)
+    if (RegExp(r'transferencia|spei|clabe|deposito|transferi').hasMatch(text)) {
+      return PaymentMethod.transfer;
+    }
+
+    if (RegExp(
+            r'efectivo|cash|billete|cambio|feria|en\s+efectivo|pague\s+con\s+billete')
+        .hasMatch(text)) {
+      return PaymentMethod.cash;
+    }
+
     return null;
   }
 
@@ -320,23 +373,25 @@ class NlpEntityExtractor {
   // ═══════════════════════════════════════════════════════════
 
   static TransactionType _inferType(String text, String description) {
-    // Verbos de gasto
-    if (RegExp(r'compre|gaste|pague|cobre|pedi|rente|pago de').hasMatch(text)) {
-      return TransactionType.expense;
-    }
-
-    // Verbos de ingreso
-    if (RegExp(r'me pagaron|me depositaron|recibi|cobre(?:\s+mi)|me dieron|gane').hasMatch(text)) {
+    // Verbos de ingreso (más específicos primero)
+    if (RegExp(
+            r'me pagaron|me depositaron|recibi|cobre\s+mi|me dieron|gane|me transfirieron')
+        .hasMatch(text)) {
       return TransactionType.income;
     }
 
-    // Si no hay verbo claro, inferir por categoría vía descripción
+    // Verbos de gasto
+    if (RegExp(
+            r'compre|gaste|pague|me cobraron|pedi|rente|pago de|pago\s+el|pago\s+la|pago\s+los')
+        .hasMatch(text)) {
+      return TransactionType.expense;
+    }
+
     final cat = CategorizationEngine.predict(description);
     if (cat != CategoryType.other) {
       return CategorizationEngine.inferType(cat);
     }
 
-    // Default: gasto (es lo más común en uso diario)
     return TransactionType.expense;
   }
 
@@ -355,25 +410,81 @@ class NlpEntityExtractor {
 
     // Remover monto numérico y su contexto
     desc = desc.replaceAll(
-      RegExp(r'\$?\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s*(?:pesos|varos|bolas|mxn)?'),
+      RegExp(r'\$\s*\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s*(?:pesos|varos|bolas|mxn)?'),
+      '',
+    );
+    desc = desc.replaceAll(
+      RegExp(r'\b\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s*(?:pesos|varos|bolas|mxn)\b'),
+      '',
+    );
+    desc = desc.replaceAll(
+      RegExp(r'\b\d{4,}(?:\.\d{1,2})?\b'),
       '',
     );
 
     // Remover palabras numéricas de monto (solo si detectamos un monto en palabras)
     if (amount != null && _extractNumericAmount(text) == null) {
       const numWords = [
-        'un', 'uno', 'una', 'dos', 'tres', 'cuatro', 'cinco', 'seis',
-        'siete', 'ocho', 'nueve', 'diez', 'once', 'doce', 'trece',
-        'catorce', 'quince', 'dieciseis', 'diecisiete', 'dieciocho',
-        'diecinueve', 'veinte', 'veintiuno', 'veintidos', 'veintitres',
-        'veinticuatro', 'veinticinco', 'veintiseis', 'veintisiete',
-        'veintiocho', 'veintinueve', 'treinta', 'cuarenta', 'cincuenta',
-        'sesenta', 'setenta', 'ochenta', 'noventa', 'cien', 'ciento',
-        'doscientos', 'doscientas', 'trescientos', 'trescientas',
-        'cuatrocientos', 'cuatrocientas', 'quinientos', 'quinientas',
-        'seiscientos', 'seiscientas', 'setecientos', 'setecientas',
-        'ochocientos', 'ochocientas', 'novecientos', 'novecientas', 'mil',
-        'pesos', 'varos', 'bolas',
+        'un',
+        'uno',
+        'una',
+        'dos',
+        'tres',
+        'cuatro',
+        'cinco',
+        'seis',
+        'siete',
+        'ocho',
+        'nueve',
+        'diez',
+        'once',
+        'doce',
+        'trece',
+        'catorce',
+        'quince',
+        'dieciseis',
+        'diecisiete',
+        'dieciocho',
+        'diecinueve',
+        'veinte',
+        'veintiuno',
+        'veintidos',
+        'veintitres',
+        'veinticuatro',
+        'veinticinco',
+        'veintiseis',
+        'veintisiete',
+        'veintiocho',
+        'veintinueve',
+        'treinta',
+        'cuarenta',
+        'cincuenta',
+        'sesenta',
+        'setenta',
+        'ochenta',
+        'noventa',
+        'cien',
+        'ciento',
+        'doscientos',
+        'doscientas',
+        'trescientos',
+        'trescientas',
+        'cuatrocientos',
+        'cuatrocientas',
+        'quinientos',
+        'quinientas',
+        'seiscientos',
+        'seiscientas',
+        'setecientos',
+        'setecientas',
+        'ochocientos',
+        'ochocientas',
+        'novecientos',
+        'novecientas',
+        'mil',
+        'pesos',
+        'varos',
+        'bolas',
       ];
       final words = desc.split(RegExp(r'\s+'));
       desc = words.where((w) => !numWords.contains(w)).join(' ');
@@ -381,7 +492,8 @@ class NlpEntityExtractor {
 
     // Remover verbos de contexto
     desc = desc.replaceAll(
-      RegExp(r'\b(compre|gaste|pague|pedi|rente|me pagaron|me depositaron|recibi|gane|fui)\b'),
+      RegExp(
+          r'\b(compre|gaste|pague|pedi|rente|me pagaron|me depositaron|recibi|gane|fui)\b'),
       '',
     );
 
@@ -393,7 +505,8 @@ class NlpEntityExtractor {
 
     // Remover referencias a método de pago
     desc = desc.replaceAll(
-      RegExp(r'\b(con\s+)?(tarjeta|efectivo|transferencia|debito|credito|spei)\b'),
+      RegExp(
+          r'\b(con\s+)?(tarjeta|efectivo|transferencia|debito|credito|spei)\b'),
       '',
     );
 
@@ -404,11 +517,36 @@ class NlpEntityExtractor {
     // al inicio y entre palabras significativas
     // Ejemplo: "de tacos" → "tacos", "en el uber" → "uber"
     final stopWords = {
-      'en', 'de', 'por', 'para', 'a', 'al', 'el', 'la', 'los', 'las',
-      'un', 'una', 'unos', 'unas', 'del', 'con', 'que', 'y', 'o',
-      'mi', 'mis', 'su', 'sus', 'lo', 'le', 'se', 'me',
+      'en',
+      'de',
+      'por',
+      'para',
+      'a',
+      'al',
+      'el',
+      'la',
+      'los',
+      'las',
+      'un',
+      'una',
+      'unos',
+      'unas',
+      'del',
+      'con',
+      'que',
+      'y',
+      'o',
+      'mi',
+      'mis',
+      'su',
+      'sus',
+      'lo',
+      'le',
+      'se',
+      'me',
     };
-    final cleanWords = desc.split(RegExp(r'\s+'))
+    final cleanWords = desc
+        .split(RegExp(r'\s+'))
         .where((w) => w.length > 1 && !stopWords.contains(w))
         .toList();
     desc = cleanWords.join(' ');

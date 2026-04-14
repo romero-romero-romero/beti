@@ -8,6 +8,7 @@ import 'package:betty_app/features/auth/presentation/providers/auth_provider.dar
 import 'package:betty_app/features/intelligence/presentation/providers/category_learning_provider.dart';
 import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
 import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 /// Pantalla de Vista Previa obligatoria.
 /// El usuario DEBE confirmar los datos antes de guardar.
@@ -197,6 +198,16 @@ class _PreviewCorrectionScreenState
                             '${draft.transactionDate.day}/${draft.transactionDate.month}/${draft.transactionDate.year}',
                       ),
 
+                      // ── Método de pago ──
+                      if (draft.paymentMethod != null) ...[
+                        const SizedBox(height: 16),
+                        _DetailRow(
+                          icon: _paymentIcon(draft.paymentMethod!),
+                          label: 'Método de pago',
+                          value: _paymentLabel(draft.paymentMethod!),
+                        ),
+                      ],
+
                       // ── Notas ──
                       if (draft.notes != null && draft.notes!.isNotEmpty) ...[
                         const SizedBox(height: 16),
@@ -268,6 +279,22 @@ class _PreviewCorrectionScreenState
       CategoryType.other => 'Sin categoría',
     };
   }
+
+  String _paymentLabel(PaymentMethod m) => switch (m) {
+        PaymentMethod.cash => 'Efectivo',
+        PaymentMethod.debitCard => 'Tarjeta de débito',
+        PaymentMethod.creditCard => 'Tarjeta de crédito',
+        PaymentMethod.transfer => 'Transferencia',
+        PaymentMethod.other => 'Otro',
+      };
+
+  IconData _paymentIcon(PaymentMethod m) => switch (m) {
+        PaymentMethod.cash => Icons.money_rounded,
+        PaymentMethod.debitCard => Icons.credit_card_outlined,
+        PaymentMethod.creditCard => Icons.credit_card,
+        PaymentMethod.transfer => Icons.swap_horiz_rounded,
+        PaymentMethod.other => Icons.more_horiz,
+      };
 }
 
 class _DetailRow extends StatelessWidget {

@@ -62,6 +62,9 @@ class TransactionModel {
   // ── Control de Sincronización ──
 
   @Enumerated(EnumType.name)
+  TxPaymentMethod? paymentMethod;
+
+  @Enumerated(EnumType.name)
   late TxSyncStatus syncStatus;
 
   DateTime? lastSyncedAt;
@@ -83,6 +86,14 @@ enum TxInputMethod {
   voice,
   ocr,
   bankSync,
+}
+
+enum TxPaymentMethod {
+  cash,
+  debitCard,
+  creditCard,
+  transfer,
+  other,
 }
 
 enum TxCategory {

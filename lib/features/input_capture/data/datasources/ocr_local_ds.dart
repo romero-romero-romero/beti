@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 /// Resultado estructurado del OCR sobre un ticket.
 class OcrTicketResult {
@@ -8,7 +9,8 @@ class OcrTicketResult {
   final double? amount;
   final DateTime? date;
   final String? concept;
-  final String? paymentMethod;
+  final PaymentMethod? paymentMethod;
+  final String? cardLastFour;
 
   const OcrTicketResult({
     required this.rawText,
@@ -16,6 +18,7 @@ class OcrTicketResult {
     this.date,
     this.concept,
     this.paymentMethod,
+    this.cardLastFour,
   });
 }
 
@@ -42,13 +45,18 @@ class OcrLocalDataSource {
 
     final lines = rawText.split('\n');
 
+    for (int i = 0; i < lines.length; i++) {
+      debugPrint('[OCR] L$i: "${lines[i]}"');
+    }
+
     final amount = _extractAmount(lines);
     final date = _extractDate(rawText);
     final concept = _extractConcept(recognized.blocks);
     final paymentMethod = _extractPaymentMethod(lines);
+    final cardLastFour = _extractCardLastFour(lines);
 
     debugPrint(
-        '[OCR] Amount: $amount | Date: $date | Concept: $concept | Payment: $paymentMethod');
+        '[OCR] Amount: $amount | Date: $date | Concept: $concept | Payment: $paymentMethod | Card: $cardLastFour');
 
     return OcrTicketResult(
       rawText: rawText,
@@ -56,6 +64,7 @@ class OcrLocalDataSource {
       date: date,
       concept: concept,
       paymentMethod: paymentMethod,
+      cardLastFour: cardLastFour,
     );
   }
 
@@ -82,8 +91,8 @@ class OcrLocalDataSource {
 
       // Buscar "TOTAL" como palabra completa (no parte de SUBTOTAL)
       // El regex requiere que TOTAL esté al inicio o precedido por espacio/símbolo
-      if (RegExp(r'(?:^|\s)TOTAL(?:\s|$|:|\.)').hasMatch(upper) ||
-          upper == 'TOTAL') {
+      if (RegExp(r'(?:^|\s)TOTA[L1](?:\s|$|:|\.)').hasMatch(upper) ||
+          RegExp(r'^TOTA[L1]$').hasMatch(upper)) {
         final amount = _parseAmountFromLine(line);
         if (amount != null && amount > 0) {
           debugPrint('[OCR] Match TOTAL: $amount from "$line"');
@@ -98,12 +107,36 @@ class OcrLocalDataSource {
       if (_isExcludedLine(upper)) continue;
 
       if (upper.contains('TOTAL A PAGAR') ||
-          upper.contains('IMPORTE TOTAL') ||
+          RegExp(r'[TI1]MPORTE\s+TOTA[L1]').hasMatch(upper) ||
           upper.contains('MONTO TOTAL')) {
         final amount = _parseAmountFromLine(line);
         if (amount != null && amount > 0) {
           debugPrint('[OCR] Match TOTAL A PAGAR: $amount from "$line"');
           return amount;
+        }
+      }
+    }
+
+    // Paso 2.5: IMPORTE solo — monto puede estar en la línea siguiente
+    for (int i = 0; i < lines.length; i++) {
+      final upper = lines[i].toUpperCase().trim();
+      if (_isExcludedLine(upper)) continue;
+
+      if (RegExp(r'^[TI1]MPORTE$|^TOTA[L1]$|^[TI]OTAL$').hasMatch(upper)) {
+        // Buscar monto en la misma línea
+        final sameLine = _parseAmountFromLine(lines[i]);
+        if (sameLine != null && sameLine > 0) {
+          debugPrint('[OCR] Match IMPORTE same line: $sameLine');
+          return sameLine;
+        }
+        // Buscar en la línea siguiente
+        if (i + 1 < lines.length) {
+          final nextLine = _parseAmountFromLine(lines[i + 1]);
+          if (nextLine != null && nextLine > 0) {
+            debugPrint(
+                '[OCR] Match IMPORTE next line: $nextLine from "${lines[i + 1]}"');
+            return nextLine;
+          }
         }
       }
     }
@@ -130,6 +163,25 @@ class OcrLocalDataSource {
         if (amount != null && amount > 0) {
           debugPrint('[OCR] Match ENTREGADO: $amount from "$line"');
           return amount;
+        }
+      }
+    }
+
+    // Paso 5: Fallback — buscar "$ XX.XX MXN" en cualquier línea
+    for (final line in lines) {
+      final upper = line.toUpperCase().trim();
+      if (_isExcludedLine(upper)) continue;
+
+      final mxnMatch = RegExp(r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*MXN')
+          .firstMatch(line);
+      if (mxnMatch != null) {
+        final raw = mxnMatch.group(1)?.replaceAll(',', '');
+        if (raw != null) {
+          final value = double.tryParse(raw);
+          if (value != null && value > 0) {
+            debugPrint('[OCR] Match \$ MXN fallback: $value from "$line"');
+            return value;
+          }
         }
       }
     }
@@ -260,28 +312,66 @@ class OcrLocalDataSource {
     final skipPatterns = RegExp(
       r'(RFC[:\s]|FOLIO|SERIE|TICKET|FACTURA|^[\d\s\$.,\-/]+$|'
       r'AVE\.|CALLE|COL\.|C\.P\.|CP\s|BLVD|#\s*\d|TEL[:\s.]|'
-      r'SUC\.|SUCURSAL|FECHA|HORA|\d{2}[/\-]\d{2}[/\-]\d{2,4})',
+      r'SUC\.|SUCURSAL|FECHA|HORA|\d{2}[/\-]\d{2}[/\-]\d{2,4}|'
+      r'REGIMEN\s+FISCAL|USO\s+DE\s+CFDI|METODO\s+DE\s+PAGO|'
+      r'FORMA\s+DE\s+PAGO|CLAVE\s+SAT|NO\.\s+DE\s+CUENTA|'
+      r'APROBAD[AO]|DECLINAD[AO]|RECHAZAD[AO]|CANCELAD[AO]|'
+      r'VENTA|COMPRA|[TI1]MPORTE|CLIENTE|CONTACTLESS|NFC|'
+      r'PAYWAVE|GETNET|TERMINAL|OPERACION|OPER\.|'
+      r'NO\.?\s*TARJETA|TARJETA[:\s]|AUT[\.\s:]|ARQC|AID[\s:]|'
+      r'REF[\.\s:]|ME\s+OBLIGO)',
       caseSensitive: false,
     );
 
+    // Líneas que son instituciones/genéricos, no el negocio
+    final genericPatterns = RegExp(
+      r'(UNIVERSIDAD|GOBIERNO|SECRETARIA|INSTITUTO|S\.A\.\s*DE\s*C\.V|'
+      r'GETNET|BBVA|BANORTE|BANAMEX|SANTANDER|HSBC|SCOTIABANK)',
+      caseSensitive: false,
+    );
+
+    // Paso 1: buscar línea con nombre de negocio específico
     for (final block in blocks.take(5)) {
       for (final line in block.lines) {
         final text = line.text.trim();
-
-        // Debe tener al menos 3 caracteres significativos
         if (text.length < 3) continue;
-
-        // Saltar líneas que son direcciones, RFC, fechas, etc.
         if (skipPatterns.hasMatch(text)) continue;
-
-        // El nombre del negocio suele tener letras
+        if (genericPatterns.hasMatch(text)) continue;
         if (RegExp(r'[a-zA-ZáéíóúñÁÉÍÓÚÑ]').hasMatch(text)) {
-          debugPrint('[OCR] Concept: "$text"');
-          return text;
+          final clean = _cleanConcept(text);
+          debugPrint('[OCR] Concept: "$clean"');
+          return clean;
+        }
+      }
+    }
+
+    // Paso 2: fallback — tomar primera línea con letras (incluso genérica)
+    for (final block in blocks.take(5)) {
+      for (final line in block.lines) {
+        final text = line.text.trim();
+        if (text.length < 3) continue;
+        if (skipPatterns.hasMatch(text)) continue;
+        if (RegExp(r'[a-zA-ZáéíóúñÁÉÍÓÚÑ]').hasMatch(text)) {
+          final clean = _cleanConcept(text);
+          debugPrint('[OCR] Concept (fallback): "$clean"');
+          return clean;
         }
       }
     }
     return null;
+  }
+
+  /// Limpia el concepto extraído: remueve prefijos numéricos,
+  /// códigos de sucursal y paréntesis con números.
+  String _cleanConcept(String text) {
+    var clean = text
+        .replaceAll(RegExp(r'^\d+\s*'), '') // prefijo numérico
+        .replaceAll(RegExp(r'\(\d+\)\s*'), '') // (0101)
+        .replaceAll(RegExp(r'\bLIB\b\s*'), '') // código LIB
+        .replaceAll(RegExp(r'\bSUC\b\.?\s*\d*'), '') // SUC o SUC.123
+        .trim();
+    if (clean.isEmpty) clean = text.trim();
+    return clean;
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -290,37 +380,79 @@ class OcrLocalDataSource {
 
   /// Detecta el método de pago del ticket.
   /// Retorna: "efectivo", "tarjeta_debito", "tarjeta_credito", "transferencia", o null.
-  String? _extractPaymentMethod(List<String> lines) {
+  PaymentMethod? _extractPaymentMethod(List<String> lines) {
+    debugPrint(
+        '[OCR] PaymentMethod checking ${lines.length} lines'); // PARA DEBUG
     for (final line in lines) {
       final upper = line.toUpperCase();
+
+      if (upper.contains('CREDIT') ||
+          upper.contains('VISA') ||
+          upper.contains('DEBITO')) {
+        // PARA DEBUG
+        debugPrint('[OCR] PM candidate: "$upper"');
+      }
 
       if (upper.contains('TARJETA DEBITO') ||
           upper.contains('TARJETA DE DEBITO') ||
           upper.contains('T. DEBITO') ||
-          upper.contains('DÉBITO')) {
-        return 'tarjeta_debito';
+          upper.contains('DÉBITO') ||
+          upper.contains('DEBIT')) {
+        return PaymentMethod.debitCard;
       }
 
       if (upper.contains('TARJETA CREDITO') ||
           upper.contains('TARJETA DE CREDITO') ||
           upper.contains('T. CREDITO') ||
-          upper.contains('CRÉDITO')) {
-        return 'tarjeta_credito';
+          upper.contains('CRÉDITO') ||
+          upper.contains('CREDIT')) {
+        return PaymentMethod.creditCard;
+      }
+
+      // Formato terminal: CREDITO/BBVA/Visa, DEBITO/BANAMEX
+      if (RegExp(r'CREDITO\s*/').hasMatch(upper)) {
+        return PaymentMethod.creditCard;
+      }
+      if (RegExp(r'DEBITO\s*/').hasMatch(upper)) {
+        return PaymentMethod.debitCard;
+      }
+
+      if (RegExp(r'VISA|MASTERCARD|AMEX|AMERICAN EXPRESS|CARNET')
+          .hasMatch(upper)) {
+        return PaymentMethod.creditCard;
       }
 
       if (upper.contains('TARJETA') &&
           !upper.contains('DEBITO') &&
           !upper.contains('CREDITO')) {
-        return 'tarjeta';
+        return PaymentMethod.creditCard;
       }
 
       if (upper.contains('EFECTIVO') || upper.contains('CASH')) {
-        return 'efectivo';
+        return PaymentMethod.cash;
       }
 
       if (upper.contains('TRANSFERENCIA') || upper.contains('SPEI')) {
-        return 'transferencia';
+        return PaymentMethod.transfer;
       }
+    }
+
+    for (final line in lines) {
+      if (RegExp(r'[\*xX]{2,4}\s*\d{4}').hasMatch(line)) {
+        return PaymentMethod.creditCard;
+      }
+    }
+
+    return null;
+  }
+
+  /// Extrae los últimos 4 dígitos de tarjeta del ticket.
+  /// Patrones: ****1234, XXXX1234, *1234, TARJETA ...1234
+  String? _extractCardLastFour(List<String> lines) {
+    for (final line in lines) {
+      // Patrones: ****1234, XXXX1234, XXXXXXXXXXXX5494, *1234
+      final match = RegExp(r'[\*xX]{1,16}\s*(\d{4})').firstMatch(line);
+      if (match != null) return match.group(1);
     }
     return null;
   }

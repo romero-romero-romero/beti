@@ -14,6 +14,7 @@ import 'package:betty_app/features/cards_credits/data/models/credit_model.dart';
 import 'package:betty_app/features/financial_health/data/models/health_snapshot_model.dart';
 import 'package:betty_app/features/transactions/data/models/category_model.dart';
 import 'package:betty_app/features/transactions/data/models/transaction_model.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 // ═══════════════════════════════════════════════════════════
 // Mapeo centralizado: Enums Canónicos (core/) ↔ Enums Isar
@@ -60,6 +61,18 @@ extension InputMethodToIsar on InputMethod {
 
 extension TxInputMethodToCanonical on TxInputMethod {
   InputMethod toCanonical() => InputMethod.values.byName(name);
+}
+
+// ─────────────────────────────────────────────────────────
+// PaymentMethod ↔ TxPaymentMethod
+// ─────────────────────────────────────────────────────────
+
+extension PaymentMethodToIsar on PaymentMethod {
+  TxPaymentMethod toIsar() => TxPaymentMethod.values.byName(name);
+}
+
+extension TxPaymentMethodToCanonical on TxPaymentMethod {
+  PaymentMethod toCanonical() => PaymentMethod.values.byName(name);
 }
 
 // ─────────────────────────────────────────────────────────

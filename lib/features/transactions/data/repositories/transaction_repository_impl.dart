@@ -122,6 +122,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       ..rawInputText = e.rawInputText
       ..creditCardUuid = e.creditCardUuid
       ..notes = e.notes
+      ..paymentMethod = e.paymentMethod?.toIsar()
       ..syncStatus = SyncStatus.pending.toTxIsar()
       ..isDeleted = e.isDeleted;
   }
@@ -143,6 +144,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       rawInputText: m.rawInputText,
       creditCardUuid: m.creditCardUuid,
       notes: m.notes,
+      paymentMethod: m.paymentMethod?.toCanonical(),
       isDeleted: m.isDeleted,
     );
   }
@@ -162,6 +164,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       'raw_input_text': m.rawInputText,
       'credit_card_uuid': m.creditCardUuid,
       'notes': m.notes,
+      'payment_method': m.paymentMethod?.name,
       'is_deleted': m.isDeleted,
       'created_at': m.createdAt.toIso8601String(),
       'updated_at': m.updatedAt.toIso8601String(),

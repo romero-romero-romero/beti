@@ -61,6 +61,6 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/Beti-icon.png"
+  image_path: "assets/images/Beti-launch-icon.png"
   adaptive_icon_background: "#FFFFFF"
-  adaptive_icon_foreground: "assets/Beti-icon.png"
+  adaptive_icon_foreground: "assets/images/Beti-launch-icon.png"

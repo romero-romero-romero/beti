@@ -5,6 +5,7 @@ import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/core/enums/transaction_type.dart';
 import 'package:betty_app/core/utils/currency_formatter.dart';
 import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 /// Tile de transacción minimalista inspirado en el EJEMPLO-APP.
 ///
@@ -102,6 +103,27 @@ class TransactionTile extends StatelessWidget {
                           color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                         ),
                       ),
+                      if (transaction.paymentMethod != null) ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            '·',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark
+                                  ? AppColors.grey.withValues(alpha: 0.5)
+                                  : AppColors.lightGrey,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          _paymentIcon(transaction.paymentMethod!),
+                          size: 12,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -147,4 +169,12 @@ class TransactionTile extends StatelessWidget {
       CategoryType.other => 'Otro',
     };
   }
+
+  IconData _paymentIcon(PaymentMethod m) => switch (m) {
+        PaymentMethod.cash => Icons.money_rounded,
+        PaymentMethod.debitCard => Icons.credit_card_outlined,
+        PaymentMethod.creditCard => Icons.credit_card,
+        PaymentMethod.transfer => Icons.swap_horiz_rounded,
+        PaymentMethod.other => Icons.more_horiz,
+      };
 }

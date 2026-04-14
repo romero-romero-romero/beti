@@ -1,6 +1,7 @@
 import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/core/enums/input_method.dart';
 import 'package:betty_app/core/enums/transaction_type.dart';
+import 'package:betty_app/core/enums/payment_method.dart';
 
 /// Entidad de transacción del dominio.
 /// Independiente de Isar — los Repositories mapean hacia/desde aquí.
@@ -20,6 +21,7 @@ class TransactionEntity {
   final String? rawInputText;
   final String? creditCardUuid;
   final String? notes;
+  final PaymentMethod? paymentMethod;
   final bool isDeleted;
 
   const TransactionEntity({
@@ -38,6 +40,7 @@ class TransactionEntity {
     this.rawInputText,
     this.creditCardUuid,
     this.notes,
+    this.paymentMethod,
     this.isDeleted = false,
   });
 
@@ -58,6 +61,7 @@ class TransactionEntity {
     String? rawInputText,
     String? creditCardUuid,
     String? notes,
+    PaymentMethod? paymentMethod,
     bool? isDeleted,
   }) {
     return TransactionEntity(
@@ -76,6 +80,7 @@ class TransactionEntity {
       rawInputText: rawInputText ?? this.rawInputText,
       creditCardUuid: creditCardUuid ?? this.creditCardUuid,
       notes: notes ?? this.notes,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
       isDeleted: isDeleted ?? this.isDeleted,
     );
   }

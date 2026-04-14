@@ -12,7 +12,7 @@ import 'package:betty_app/features/transactions/data/repositories/transaction_re
 import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:betty_app/features/transactions/domain/repositories/transaction_repository.dart';
 import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
-
+import 'package:betty_app/core/enums/payment_method.dart';
 // ── Dependency Injection ──
 
 final transactionLocalDsProvider = Provider<TransactionLocalDataSource>((ref) {
@@ -86,6 +86,7 @@ class TransactionDraft {
   final String? creditCardUuid;
   final String? notes;
   final String? ticketImagePath;
+  final PaymentMethod? paymentMethod;
   TransactionDraft({
     this.uuid = '',
     this.type = TransactionType.expense,
@@ -99,6 +100,7 @@ class TransactionDraft {
     this.creditCardUuid,
     this.notes,
     this.ticketImagePath,
+    this.paymentMethod,
   }) : transactionDate = transactionDate ?? DateTime.now();
 
   TransactionDraft copyWith({
@@ -114,6 +116,7 @@ class TransactionDraft {
     String? creditCardUuid,
     String? notes,
     String? ticketImagePath,
+    PaymentMethod? paymentMethod,
   }) {
     return TransactionDraft(
       uuid: uuid ?? this.uuid,
@@ -128,6 +131,7 @@ class TransactionDraft {
       creditCardUuid: creditCardUuid ?? this.creditCardUuid,
       notes: notes ?? this.notes,
       ticketImagePath: ticketImagePath ?? this.ticketImagePath,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
     );
   }
 }
@@ -137,6 +141,9 @@ class TransactionDraft {
 class TransactionFormNotifier extends StateNotifier<TransactionDraft> {
   TransactionFormNotifier()
       : super(TransactionDraft(transactionDate: DateTime.now()));
+
+  void updatePaymentMethod(PaymentMethod? method) =>
+      state = state.copyWith(paymentMethod: method);
 
   /// Resetea el formulario a valores por defecto.
   void reset() {
@@ -157,6 +164,7 @@ class TransactionFormNotifier extends StateNotifier<TransactionDraft> {
       rawInputText: entity.rawInputText,
       creditCardUuid: entity.creditCardUuid,
       notes: entity.notes,
+      paymentMethod: entity.paymentMethod,
     );
   }
 
@@ -215,6 +223,7 @@ class TransactionFormNotifier extends StateNotifier<TransactionDraft> {
       rawInputText: state.rawInputText,
       creditCardUuid: state.creditCardUuid,
       notes: state.notes,
+      paymentMethod: state.paymentMethod,
     );
   }
 }

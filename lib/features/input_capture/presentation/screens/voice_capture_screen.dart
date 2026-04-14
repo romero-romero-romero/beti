@@ -85,6 +85,9 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen>
     if (result.date != null) formNotifier.updateDate(result.date!);
     formNotifier.updateInputMethod(InputMethod.voice);
     formNotifier.updateRawInput(text);
+    if (result.paymentMethod != null) {
+      formNotifier.updatePaymentMethod(result.paymentMethod);
+    }
 
     context.goNamed('addTransaction');
   }
