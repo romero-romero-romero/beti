@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.betty_app"
+    namespace = "mx.beti.app"
     compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.betty_app"
+        applicationId = "app.beti.mx"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

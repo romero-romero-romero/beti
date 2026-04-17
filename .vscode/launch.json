@@ -8,20 +8,20 @@
         
     
         {
-            "name": "betty_app",
+            "name": "beti_app",
             "request": "launch",
             "type": "dart",
             "program": "lib/main.dart"
         },
         {
-            "name": "betty_app (profile mode)",
+            "name": "beti_app (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile",
             "program": "lib/main.dart"
         },
         {
-            "name": "betty_app (release mode)",
+            "name": "beti_app (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release",
