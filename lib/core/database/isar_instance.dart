@@ -10,6 +10,7 @@ import 'package:betty_app/features/cards_credits/data/models/credit_model.dart';
 import 'package:betty_app/features/budgets_goals/data/models/budget_model.dart';
 import 'package:betty_app/features/budgets_goals/data/models/goal_model.dart';
 import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:betty_app/features/budgets_goals/data/models/income_budget_model.dart';
 
 /// Singleton que gestiona la instancia única de Isar Database.
 ///
@@ -55,6 +56,7 @@ class IsarInstance {
         CreditCardModelSchema,
         CreditModelSchema,
         BudgetModelSchema,
+        IncomeBudgetModelSchema,
         GoalModelSchema,
         SyncQueueModelSchema,
       ],

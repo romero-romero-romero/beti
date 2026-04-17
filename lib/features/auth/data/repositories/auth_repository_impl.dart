@@ -1,3 +1,4 @@
+import 'package:betty_app/features/budgets_goals/data/models/income_budget_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -111,6 +112,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await _isar.creditCardModels.clear();
       await _isar.creditModels.clear();
       await _isar.budgetModels.clear();
+      await _isar.incomeBudgetModels.clear();
       await _isar.goalModels.clear();
       await _isar.healthSnapshotModels.clear();
       await _isar.syncQueueModels.clear();

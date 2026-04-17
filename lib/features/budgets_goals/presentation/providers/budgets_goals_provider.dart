@@ -158,8 +158,8 @@ class BudgetEntity {
 
   /// Nivel semáforo individual por categoría.
   BudgetCategoryStatus get status {
-    if (consumptionRatio <= 0.5) return BudgetCategoryStatus.green;
-    if (consumptionRatio <= 0.8) return BudgetCategoryStatus.yellow;
+    if (consumptionRatio <= 1.0) return BudgetCategoryStatus.green;
+    if (consumptionRatio <= 1.1) return BudgetCategoryStatus.yellow;
     return BudgetCategoryStatus.red;
   }
 
@@ -205,6 +205,13 @@ class GoalEntity {
   }
 }
 
+/// Período seleccionado para la vista de presupuestos.
+/// Formato: [year, month]. Default: mes actual.
+final selectedPeriodProvider = StateProvider<({int year, int month})>((ref) {
+  final now = DateTime.now();
+  return (year: now.year, month: now.month);
+});
+
 // ══════════════════════════════════════════════════════════════
 // Budgets Notifier
 // ══════════════════════════════════════════════════════════════
@@ -217,9 +224,23 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
     final auth = ref.read(authProvider);
     if (auth is! AuthAuthenticated) return [];
 
-    // 1. Recalcular gastos reales del mes desde transacciones
+    final selected = ref.read(selectedPeriodProvider);
+    final now = DateTime.now();
+    final isCurrentMonth =
+        selected.year == now.year && selected.month == now.month;
+
     final calculator = ref.read(budgetSpendingCalculatorProvider);
-    final models = await calculator.recalculateAndPersist(auth.user.supabaseId);
+    final List<BudgetModel> models;
+
+    if (isCurrentMonth) {
+      models = await calculator.recalculateAndPersist(auth.user.supabaseId);
+    } else {
+      models = await calculator.recalculateAndPersistForPeriod(
+        auth.user.supabaseId,
+        selected.year,
+        selected.month,
+      );
+    }
 
     return models
         .map((m) => BudgetEntity(
@@ -240,9 +261,13 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
     final budgets = await _load();
     state = AsyncData(budgets);
 
-    // Evaluar alertas de umbral
+    // Evaluar alertas solo en el mes actual
     final auth = ref.read(authProvider);
     if (auth is! AuthAuthenticated) return;
+
+    final selected = ref.read(selectedPeriodProvider);
+    final now = DateTime.now();
+    if (selected.year != now.year || selected.month != now.month) return;
 
     final period = BettyDateUtils.currentPeriod();
     final models = await ref
@@ -265,16 +290,13 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
     final ds = ref.read(budgetLocalDsProvider);
     final now = DateTime.now();
 
-    // Verificar si ya existe para esta categoría/período
     final existing = await ds.getByCategoryAndPeriod(uid, categoryKey, period);
 
     if (existing != null) {
-      // Actualizar el existente
       await updateBudget(uuid: existing.uuid, newAmount: amount);
       return;
     }
 
-    // Crear nuevo
     final uuid = UuidGenerator.generate();
     final model = BudgetModel()
       ..uuid = uuid
@@ -367,10 +389,16 @@ final budgetMonthSummaryProvider =
     FutureProvider<BudgetMonthSummary?>((ref) async {
   final auth = ref.watch(authProvider);
   if (auth is! AuthAuthenticated) return null;
-  // Se invalida cuando cambian los presupuestos
+
   ref.watch(budgetsProvider);
+
+  final selected = ref.watch(selectedPeriodProvider);
   final calculator = ref.read(budgetSpendingCalculatorProvider);
-  return await calculator.getMonthSummary(auth.user.supabaseId);
+  return await calculator.getMonthSummaryForPeriod(
+    auth.user.supabaseId,
+    selected.year,
+    selected.month,
+  );
 });
 
 // ══════════════════════════════════════════════════════════════

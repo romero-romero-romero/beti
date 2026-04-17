@@ -107,6 +107,108 @@ class BudgetSpendingCalculator {
       overallRatio: totalBudgeted > 0 ? totalExpenses / totalBudgeted : 0,
     );
   }
+
+  /// Retorna { categoryKey: totalGastado } para un mes específico.
+  Future<Map<String, double>> calculateSpentByCategoryForPeriod(
+    String userId,
+    int year,
+    int month,
+  ) async {
+    final from = BettyDateUtils.startOfMonth(year, month);
+    final to = BettyDateUtils.endOfMonth(year, month);
+
+    final transactions = await _isar.transactionModels
+        .filter()
+        .userIdEqualTo(userId)
+        .isDeletedEqualTo(false)
+        .typeEqualTo(TxType.expense)
+        .transactionDateBetween(from, to)
+        .findAll();
+
+    final Map<String, double> spentMap = {};
+    for (final tx in transactions) {
+      final key = tx.category.name;
+      spentMap[key] = (spentMap[key] ?? 0) + tx.amount;
+    }
+    return spentMap;
+  }
+
+  /// Recalcula spentAmount de presupuestos de un período específico.
+  Future<List<BudgetModel>> recalculateAndPersistForPeriod(
+    String userId,
+    int year,
+    int month,
+  ) async {
+    final period = BettyDateUtils.periodFrom(year, month);
+    final spentMap =
+        await calculateSpentByCategoryForPeriod(userId, year, month);
+
+    final budgets = await _isar.budgetModels
+        .filter()
+        .userIdEqualTo(userId)
+        .periodEqualTo(period)
+        .findAll();
+
+    if (budgets.isEmpty) return budgets;
+
+    await _isar.writeTxn(() async {
+      for (final budget in budgets) {
+        final spent = spentMap[budget.categoryKey] ?? 0;
+        budget.spentAmount = spent;
+        budget.consumptionRatio =
+            budget.budgetedAmount > 0 ? spent / budget.budgetedAmount : 0;
+        budget.updatedAt = DateTime.now();
+        await _isar.budgetModels.put(budget);
+      }
+    });
+
+    return budgets;
+  }
+
+  /// Resumen de un mes específico.
+  Future<BudgetMonthSummary> getMonthSummaryForPeriod(
+    String userId,
+    int year,
+    int month,
+  ) async {
+    final from = BettyDateUtils.startOfMonth(year, month);
+    final to = BettyDateUtils.endOfMonth(year, month);
+
+    final allTx = await _isar.transactionModels
+        .filter()
+        .userIdEqualTo(userId)
+        .isDeletedEqualTo(false)
+        .transactionDateBetween(from, to)
+        .findAll();
+
+    double totalIncome = 0;
+    double totalExpenses = 0;
+    for (final tx in allTx) {
+      if (tx.type == TxType.income) {
+        totalIncome += tx.amount;
+      } else {
+        totalExpenses += tx.amount;
+      }
+    }
+
+    final period = BettyDateUtils.periodFrom(year, month);
+    final budgets = await _isar.budgetModels
+        .filter()
+        .userIdEqualTo(userId)
+        .periodEqualTo(period)
+        .findAll();
+
+    final totalBudgeted =
+        budgets.fold<double>(0, (sum, b) => sum + b.budgetedAmount);
+
+    return BudgetMonthSummary(
+      totalIncome: totalIncome,
+      totalExpenses: totalExpenses,
+      totalBudgeted: totalBudgeted,
+      available: totalIncome - totalExpenses,
+      overallRatio: totalBudgeted > 0 ? totalExpenses / totalBudgeted : 0,
+    );
+  }
 }
 
 /// Resumen del mes para el termómetro global.
@@ -127,11 +229,9 @@ class BudgetMonthSummary {
     required this.overallRatio,
   });
 
-  /// Nivel semáforo del termómetro (igual que el Excel).
-  /// 🟢 < 50%, 🟡 50-80%, 🔴 > 80%
   BudgetHealthLevel get healthLevel {
-    if (overallRatio <= 0.5) return BudgetHealthLevel.green;
-    if (overallRatio <= 0.8) return BudgetHealthLevel.yellow;
+    if (overallRatio <= 1.0) return BudgetHealthLevel.green;
+    if (overallRatio <= 1.1) return BudgetHealthLevel.yellow;
     return BudgetHealthLevel.red;
   }
 }

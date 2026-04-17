@@ -248,6 +248,7 @@ class SyncMergeService {
       ..creditLimit = (row['credit_limit'] as num?)?.toDouble() ?? 0
       ..currentBalance = (row['current_balance'] as num?)?.toDouble() ?? 0
       ..availableCredit = (row['available_credit'] as num?)?.toDouble() ?? 0
+      ..annualRate = (row['annual_rate'] as num?)?.toDouble()
       ..cutOffDay = row['cut_off_day'] as int
       ..paymentDueDay = row['payment_due_day'] as int
       ..nextCutOffDate = _parseNullableDate(row['next_cut_off_date'])

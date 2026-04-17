@@ -34,6 +34,9 @@ class CreditCardModel {
   /// creditLimit - currentBalance (cacheado para acceso offline rápido).
   late double availableCredit;
 
+  /// Tasa de interés anual (ej: 0.57 = 57%). Para cálculo de pago mínimo.
+  double? annualRate;
+
   // ── Fechas clave para alertas ──
 
   /// Día del mes de la fecha de corte (1-31).

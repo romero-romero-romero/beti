@@ -142,16 +142,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signOut() async {
     await _repository.signOut();
 
-    // Invalidar TODOS los providers de datos para limpiar cache de Riverpod
-    _ref.invalidate(healthProvider);
-    _ref.invalidate(transactionsProvider);
-    _ref.invalidate(budgetsProvider);
-    _ref.invalidate(goalsProvider);
-    _ref.invalidate(creditCardsProvider);
-    _ref.invalidate(creditsProvider);
-    _ref.invalidate(pendingSyncCountProvider);
-
     state = const AuthUnauthenticated();
+
+    // Desacoplar invalidaciones para evitar CircularDependencyError.
+    // Al cambiar state primero, los providers que hacen ref.watch(authProvider)
+    // ya ven AuthUnauthenticated y retornan vacío al reconstruirse.
+    Future.microtask(() {
+      _ref.invalidate(healthProvider);
+      _ref.invalidate(transactionsProvider);
+      _ref.invalidate(budgetsProvider);
+      _ref.invalidate(goalsProvider);
+      _ref.invalidate(creditCardsProvider);
+      _ref.invalidate(creditsProvider);
+      _ref.invalidate(pendingSyncCountProvider);
+    });
   }
 
   String _parseAuthError(dynamic error) {

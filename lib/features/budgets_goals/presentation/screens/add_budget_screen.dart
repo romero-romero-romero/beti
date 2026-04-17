@@ -6,6 +6,7 @@ import 'package:betty_app/core/constants/app_colors.dart';
 import 'package:betty_app/core/enums/category_type.dart';
 import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:betty_app/features/financial_education/presentation/widgets/term_info_icon.dart';
 
 /// Pantalla para agregar o editar un presupuesto mensual.
 class AddBudgetScreen extends ConsumerStatefulWidget {
@@ -124,7 +125,8 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
       appBar: AppBar(
         title: const Text('Nuevo presupuesto'),
         leading: IconButton(
-          icon: Icon(PlatformHelper.isApple ? CupertinoIcons.back : Icons.arrow_back),
+          icon: Icon(
+              PlatformHelper.isApple ? CupertinoIcons.back : Icons.arrow_back),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -140,13 +142,21 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Categoría ──
-            Text(
-              'Categoría',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-              ),
+            Row(
+              children: [
+                Text(
+                  'Categoría',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const TermInfoIcon(termKey: 'expense_category'),
+              ],
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -157,11 +167,14 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                 return GestureDetector(
                   onTap: () => setState(() => _selectedCategory = cat),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: selected
                           ? AppColors.primary.withValues(alpha: 0.15)
-                          : (isDark ? AppColors.surfaceDark : Colors.grey.shade100),
+                          : (isDark
+                              ? AppColors.surfaceDark
+                              : Colors.grey.shade100),
                       borderRadius: BorderRadius.circular(20),
                       border: selected
                           ? Border.all(color: AppColors.primary, width: 1.5)
@@ -182,10 +195,13 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                           _categoryLabel(cat),
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                            fontWeight:
+                                selected ? FontWeight.w600 : FontWeight.w400,
                             color: selected
                                 ? AppColors.primary
-                                : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                : (isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight),
                           ),
                         ),
                       ],
@@ -202,13 +218,16 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 prefixText: '\$ ',
                 hintText: '0.00',
@@ -236,7 +255,8 @@ class _AddBudgetScreenState extends ConsumerState<AddBudgetScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Guardar presupuesto', style: TextStyle(fontWeight: FontWeight.w600)),
+                child: const Text('Guardar presupuesto',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
               ),
             ),
           ],

@@ -9,7 +9,8 @@ class BettyDateUtils {
   /// Ajusta automáticamente para meses con menos días (ej: 31 en febrero → 28).
   static DateTime nextOccurrence(int dayOfMonth) {
     final now = DateTime.now();
-    final thisMonth = DateTime(now.year, now.month, _clampDay(now.year, now.month, dayOfMonth));
+    final thisMonth = DateTime(
+        now.year, now.month, _clampDay(now.year, now.month, dayOfMonth));
 
     if (thisMonth.isAfter(now)) {
       return thisMonth;
@@ -18,7 +19,8 @@ class BettyDateUtils {
     // Siguiente mes
     final nextMonth = now.month == 12 ? 1 : now.month + 1;
     final nextYear = now.month == 12 ? now.year + 1 : now.year;
-    return DateTime(nextYear, nextMonth, _clampDay(nextYear, nextMonth, dayOfMonth));
+    return DateTime(
+        nextYear, nextMonth, _clampDay(nextYear, nextMonth, dayOfMonth));
   }
 
   /// Calcula la fecha de alerta (3 días antes de [targetDate]).
@@ -58,5 +60,20 @@ class BettyDateUtils {
   static int _clampDay(int year, int month, int day) {
     final maxDay = DateTime(year, month + 1, 0).day;
     return day > maxDay ? maxDay : day;
+  }
+
+  /// Período en formato "YYYY-MM" a partir de año y mes.
+  static String periodFrom(int year, int month) {
+    return '$year-${month.toString().padLeft(2, '0')}';
+  }
+
+  /// Primer día de un mes/año específico.
+  static DateTime startOfMonth(int year, int month) {
+    return DateTime(year, month, 1);
+  }
+
+  /// Último día de un mes/año específico.
+  static DateTime endOfMonth(int year, int month) {
+    return DateTime(year, month + 1, 0, 23, 59, 59);
   }
 }

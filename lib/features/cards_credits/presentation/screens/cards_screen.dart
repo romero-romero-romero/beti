@@ -8,6 +8,8 @@ import 'package:betty_app/core/utils/platform_helper.dart';
 import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
 import 'package:betty_app/features/cards_credits/domain/entities/credit_card_entity.dart';
 import 'package:betty_app/features/cards_credits/domain/entities/credit_entity.dart';
+import 'package:betty_app/features/financial_education/presentation/widgets/term_info_icon.dart';
+import 'package:betty_app/features/cards_credits/data/services/credit_simulator_service.dart';
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});
@@ -68,10 +70,100 @@ class CardsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
 
+                // ── Resumen de deuda total ──
+                cardsAsync.when(
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (cards) {
+                    if (cards.isEmpty) return const SizedBox.shrink();
+                    final totalDebt = cards.fold<double>(
+                        0, (sum, c) => sum + c.currentBalance);
+                    final totalLimit =
+                        cards.fold<double>(0, (sum, c) => sum + c.creditLimit);
+                    final overallUtil =
+                        totalLimit > 0 ? (totalDebt / totalLimit * 100) : 0.0;
+                    final healthyMax = totalLimit * 0.30;
+                    final overallColor = overallUtil <= 30
+                        ? AppColors.primary
+                        : overallUtil <= 60
+                            ? AppColors.warning
+                            : AppColors.expense;
+
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: overallColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text('Deuda total en tarjetas',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight)),
+                              const SizedBox(width: 4),
+                              const TermInfoIcon(
+                                  termKey: 'healthy_utilization', size: 14),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(CurrencyFormatter.format(totalDebt),
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight)),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: (overallUtil / 100).clamp(0.0, 1.0),
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Colors.black.withValues(alpha: 0.06),
+                              valueColor: AlwaysStoppedAnimation(overallColor),
+                              minHeight: 6,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${overallUtil.toStringAsFixed(0)}% de tu línea total',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: overallColor),
+                              ),
+                              Text(
+                                'Uso saludable: hasta ${CurrencyFormatter.format(healthyMax)}',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondaryLight),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+
                 // ── Tarjetas de crédito ──
                 cardsAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  loading: () => const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2)),
                   error: (e, _) => Text('Error: $e'),
                   data: (cards) {
                     if (cards.isEmpty) {
@@ -141,7 +233,8 @@ class CardsScreen extends ConsumerWidget {
                                   .deleteCredit(credit.uuid),
                               onToggleAlerts: () => ref
                                   .read(creditsProvider.notifier)
-                                  .toggleAlerts(credit.uuid, !credit.alertsEnabled),
+                                  .toggleAlerts(
+                                      credit.uuid, !credit.alertsEnabled),
                             )),
                       ],
                     );
@@ -159,6 +252,15 @@ class CardsScreen extends ConsumerWidget {
                       size: 18,
                     ),
                     label: const Text('Agregar tarjeta o crédito'),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.pushNamed('creditSimulator'),
+                    icon: const Icon(Icons.calculate_outlined, size: 18),
+                    label: const Text('Simulador de deuda'),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -248,7 +350,8 @@ class _CreditCardTile extends StatelessWidget {
             // ── Header: nombre + red ──
             Row(
               children: [
-                Icon(_networkIcon(card.network.name), size: 20, color: utilColor),
+                Icon(_networkIcon(card.network.name),
+                    size: 20, color: utilColor),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -318,7 +421,6 @@ class _CreditCardTile extends StatelessWidget {
 
             // ── Utilización + Fechas ──
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   '${util.toStringAsFixed(0)}% utilizado',
@@ -328,6 +430,33 @@ class _CreditCardTile extends StatelessWidget {
                     color: utilColor,
                   ),
                 ),
+                if (util <= 30)
+                  Text(
+                    ' · Uso saludable',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primary,
+                    ),
+                  )
+                else
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        util <= 60 ? ' · Precaución' : ' · Riesgo',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: utilColor,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const TermInfoIcon(
+                          termKey: 'healthy_utilization', size: 14),
+                    ],
+                  ),
+                const Spacer(),
                 Text(
                   'Corte: ${card.cutOffDay} · Pago: ${card.paymentDueDay}',
                   style: TextStyle(
@@ -340,6 +469,93 @@ class _CreditCardTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
+
+            // ── Análisis de pago mínimo ──
+            if (card.currentBalance > 0 &&
+                card.annualRate != null &&
+                card.annualRate! > 0) ...[
+              const SizedBox(height: 8),
+              Builder(builder: (_) {
+                final minPayment = card.currentBalance * 0.03;
+                final effectiveMin = minPayment < 200 ? 200.0 : minPayment;
+                final result = CreditSimulatorService.simulate(
+                  debt: card.currentBalance,
+                  annualRate: card.annualRate!,
+                  monthlyPayment: effectiveMin,
+                );
+                if (result == null) {
+                  return Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
+                            size: 16, color: Colors.red),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'El pago mínimo no cubre los intereses. Considera refinanciar.',
+                            style: TextStyle(
+                                fontSize: 11, color: Colors.red.shade700),
+                          ),
+                        ),
+                        const TermInfoIcon(
+                            termKey: 'minimum_payment', size: 14),
+                      ],
+                    ),
+                  );
+                }
+                final color = result.months > 120
+                    ? Colors.red
+                    : result.months > 36
+                        ? Colors.amber.shade700
+                        : AppColors.primary;
+                return Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            result.months > 36
+                                ? Icons.warning_amber_rounded
+                                : Icons.info_outline,
+                            size: 14,
+                            color: color,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Si pagas solo el mínimo (${CurrencyFormatter.format(effectiveMin)}):',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: color),
+                          ),
+                          const Spacer(),
+                          const TermInfoIcon(
+                              termKey: 'minimum_payment', size: 14),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Tardarías ${result.timeLabel} · Pagarías ${CurrencyFormatter.format(result.totalInterest)} en intereses',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
 
             // ── Toggle de alertas ──
             Row(
@@ -633,8 +849,8 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 48,
-              color: isDark ? AppColors.grey : AppColors.lightGrey),
+          Icon(icon,
+              size: 48, color: isDark ? AppColors.grey : AppColors.lightGrey),
           const SizedBox(height: 12),
           Text(
             title,

@@ -44,18 +44,13 @@ class CreditCardLocalDataSource {
   }
 
   Future<CreditCardModel?> getByUuid(String uuid) async {
-    return await _isar.creditCardModels
-        .filter()
-        .uuidEqualTo(uuid)
-        .findFirst();
+    return await _isar.creditCardModels.filter().uuidEqualTo(uuid).findFirst();
   }
 
   Future<void> deactivate(String uuid) async {
     await _isar.writeTxn(() async {
-      final card = await _isar.creditCardModels
-          .filter()
-          .uuidEqualTo(uuid)
-          .findFirst();
+      final card =
+          await _isar.creditCardModels.filter().uuidEqualTo(uuid).findFirst();
       if (card != null) {
         card.isActive = false;
         card.syncStatus = CcSyncStatus.pending;
@@ -91,18 +86,13 @@ class CreditLocalDataSource {
   }
 
   Future<CreditModel?> getByUuid(String uuid) async {
-    return await _isar.creditModels
-        .filter()
-        .uuidEqualTo(uuid)
-        .findFirst();
+    return await _isar.creditModels.filter().uuidEqualTo(uuid).findFirst();
   }
 
   Future<void> deactivate(String uuid) async {
     await _isar.writeTxn(() async {
-      final credit = await _isar.creditModels
-          .filter()
-          .uuidEqualTo(uuid)
-          .findFirst();
+      final credit =
+          await _isar.creditModels.filter().uuidEqualTo(uuid).findFirst();
       if (credit != null) {
         credit.isActive = false;
         credit.syncStatus = CreditSyncStatus.pending;
@@ -139,6 +129,7 @@ CreditCardEntity _cardModelToEntity(CreditCardModel m) {
     creditLimit: m.creditLimit,
     currentBalance: m.currentBalance,
     availableCredit: m.availableCredit,
+    annualRate: m.annualRate,
     cutOffDay: m.cutOffDay,
     paymentDueDay: m.paymentDueDay,
     nextCutOffDate: m.nextCutOffDate,
@@ -166,6 +157,7 @@ CreditCardModel _cardEntityToModel(
     ..creditLimit = e.creditLimit
     ..currentBalance = e.currentBalance
     ..availableCredit = e.availableCredit
+    ..annualRate = e.annualRate
     ..cutOffDay = e.cutOffDay
     ..paymentDueDay = e.paymentDueDay
     ..nextCutOffDate = e.nextCutOffDate
@@ -187,6 +179,7 @@ String _cardModelToJson(CreditCardModel m) {
     'credit_limit': m.creditLimit,
     'current_balance': m.currentBalance,
     'available_credit': m.availableCredit,
+    'annual_rate': m.annualRate,
     'cut_off_day': m.cutOffDay,
     'payment_due_day': m.paymentDueDay,
     'next_cut_off_date': m.nextCutOffDate?.toIso8601String(),
@@ -355,6 +348,7 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
     required double currentBalance,
     required int cutOffDay,
     required int paymentDueDay,
+    double? annualRate,
   }) async {
     final authState = ref.read(authProvider);
     if (authState is! AuthAuthenticated) return;
@@ -373,6 +367,7 @@ class CreditCardsNotifier extends AsyncNotifier<List<CreditCardEntity>> {
       ..creditLimit = creditLimit
       ..currentBalance = currentBalance
       ..availableCredit = available
+      ..annualRate = annualRate
       ..cutOffDay = cutOffDay
       ..paymentDueDay = paymentDueDay
       ..alertsEnabled = true

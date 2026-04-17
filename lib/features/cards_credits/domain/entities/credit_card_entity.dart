@@ -13,6 +13,7 @@ class CreditCardEntity {
   final double creditLimit;
   final double currentBalance;
   final double availableCredit;
+  final double? annualRate;
   final int cutOffDay;
   final int paymentDueDay;
   final DateTime? nextCutOffDate;
@@ -32,6 +33,7 @@ class CreditCardEntity {
     required this.creditLimit,
     required this.currentBalance,
     required this.availableCredit,
+    this.annualRate,
     required this.cutOffDay,
     required this.paymentDueDay,
     this.nextCutOffDate,
@@ -56,6 +58,7 @@ class CreditCardEntity {
     double? creditLimit,
     double? currentBalance,
     double? availableCredit,
+    double? annualRate,
     int? cutOffDay,
     int? paymentDueDay,
     DateTime? nextCutOffDate,
@@ -75,6 +78,7 @@ class CreditCardEntity {
       creditLimit: creditLimit ?? this.creditLimit,
       currentBalance: currentBalance ?? this.currentBalance,
       availableCredit: availableCredit ?? this.availableCredit,
+      annualRate: annualRate ?? this.annualRate,
       cutOffDay: cutOffDay ?? this.cutOffDay,
       paymentDueDay: paymentDueDay ?? this.paymentDueDay,
       nextCutOffDate: nextCutOffDate ?? this.nextCutOffDate,

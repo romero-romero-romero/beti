@@ -11,6 +11,7 @@ import 'package:betty_app/features/input_capture/presentation/screens/ocr_captur
 import 'package:betty_app/features/cards_credits/presentation/screens/add_card_screen.dart';
 import 'package:betty_app/features/budgets_goals/presentation/screens/add_budget_screen.dart';
 import 'package:betty_app/features/budgets_goals/presentation/screens/add_goal_screen.dart';
+import 'package:betty_app/features/cards_credits/presentation/screens/credit_simulator_screen.dart';
 
 /// Provider de GoRouter que reacciona al estado de autenticación.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -20,8 +21,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     redirect: (context, state) {
       final isAuthenticated = authState is AuthAuthenticated;
-      final isAuthRoute =
-          state.matchedLocation == '/login' ||
+      final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
 
       if (isAuthenticated && isAuthRoute) return '/home';
@@ -73,6 +73,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/add-card',
         name: 'addCard',
         builder: (context, state) => const AddCardScreen(),
+      ),
+      GoRoute(
+        path: '/credit-simulator',
+        name: 'creditSimulator',
+        builder: (context, state) => const CreditSimulatorScreen(),
       ),
       GoRoute(
         path: '/add-budget',
