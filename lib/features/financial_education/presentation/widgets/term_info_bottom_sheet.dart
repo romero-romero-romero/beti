@@ -1,7 +1,7 @@
 // lib/features/financial_education/presentation/widgets/term_info_bottom_sheet.dart
 
 import 'package:flutter/material.dart';
-import 'package:betty_app/features/financial_education/domain/entities/financial_term.dart';
+import 'package:beti_app/features/financial_education/domain/entities/financial_term.dart';
 
 /// Bottom sheet educativo que muestra un término financiero en tres bloques:
 ///   1. Qué es (definición simple)

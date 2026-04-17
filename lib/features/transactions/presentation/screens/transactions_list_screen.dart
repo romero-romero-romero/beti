@@ -2,12 +2,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
-import 'package:betty_app/core/utils/platform_helper.dart';
-import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
-import 'package:betty_app/features/transactions/presentation/widgets/transaction_tile.dart';
-import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/utils/platform_helper.dart';
+import 'package:beti_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:beti_app/features/transactions/presentation/widgets/transaction_tile.dart';
+import 'package:beti_app/features/financial_health/presentation/providers/health_provider.dart';
 
 /// Pantalla de listado de transacciones con filtro por tipo.
 class TransactionsListScreen extends ConsumerStatefulWidget {

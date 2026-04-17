@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/core/constants/app_strings.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/core/constants/app_strings.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});

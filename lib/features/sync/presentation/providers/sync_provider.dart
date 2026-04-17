@@ -1,20 +1,20 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:betty_app/core/providers/core_providers.dart';
-import 'package:betty_app/core/providers/connectivity_provider.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/sync/data/datasources/sync_local_ds.dart';
-import 'package:betty_app/features/sync/data/datasources/sync_remote_ds.dart';
-import 'package:betty_app/features/sync/data/datasources/sync_pull_ds.dart';
-import 'package:betty_app/features/sync/data/repositories/sync_repository_impl.dart';
-import 'package:betty_app/features/sync/data/services/sync_merge_service.dart';
-import 'package:betty_app/features/sync/data/services/realtime_service.dart';
-import 'package:betty_app/features/sync/domain/repositories/sync_repository.dart';
-import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
-import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
-import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
-import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
+import 'package:beti_app/core/providers/core_providers.dart';
+import 'package:beti_app/core/providers/connectivity_provider.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/sync/data/datasources/sync_local_ds.dart';
+import 'package:beti_app/features/sync/data/datasources/sync_remote_ds.dart';
+import 'package:beti_app/features/sync/data/datasources/sync_pull_ds.dart';
+import 'package:beti_app/features/sync/data/repositories/sync_repository_impl.dart';
+import 'package:beti_app/features/sync/data/services/sync_merge_service.dart';
+import 'package:beti_app/features/sync/data/services/realtime_service.dart';
+import 'package:beti_app/features/sync/domain/repositories/sync_repository.dart';
+import 'package:beti_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:beti_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
 
 // ── Dependency Injection ──
 

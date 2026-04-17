@@ -2,14 +2,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/utils/currency_formatter.dart';
-import 'package:betty_app/core/utils/platform_helper.dart';
-import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
-import 'package:betty_app/features/cards_credits/domain/entities/credit_card_entity.dart';
-import 'package:betty_app/features/cards_credits/domain/entities/credit_entity.dart';
-import 'package:betty_app/features/financial_education/presentation/widgets/term_info_icon.dart';
-import 'package:betty_app/features/cards_credits/data/services/credit_simulator_service.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/utils/currency_formatter.dart';
+import 'package:beti_app/core/utils/platform_helper.dart';
+import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
+import 'package:beti_app/features/cards_credits/domain/entities/credit_card_entity.dart';
+import 'package:beti_app/features/cards_credits/domain/entities/credit_entity.dart';
+import 'package:beti_app/features/financial_education/presentation/widgets/term_info_icon.dart';
+import 'package:beti_app/features/cards_credits/data/services/credit_simulator_service.dart';
 
 class CardsScreen extends ConsumerWidget {
   const CardsScreen({super.key});

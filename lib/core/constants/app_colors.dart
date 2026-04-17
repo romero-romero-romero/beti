@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:betty_app/core/enums/health_level.dart';
+import 'package:beti_app/core/enums/health_level.dart';
 
 /// Paleta de colores emocional de Betty.
 /// Colores principales: verde, negro, gris, blanco.

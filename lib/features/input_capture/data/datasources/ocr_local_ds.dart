@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 
 /// Resultado estructurado del OCR sobre un ticket.
 class OcrTicketResult {

@@ -1,17 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/core/widgets/main_shell.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/auth/presentation/screens/login_screen.dart';
-import 'package:betty_app/features/auth/presentation/screens/register_screen.dart';
-import 'package:betty_app/features/transactions/presentation/screens/add_transaction_screen.dart';
-import 'package:betty_app/features/transactions/presentation/screens/preview_correction_screen.dart';
-import 'package:betty_app/features/input_capture/presentation/screens/voice_capture_screen.dart';
-import 'package:betty_app/features/input_capture/presentation/screens/ocr_capture_screen.dart';
-import 'package:betty_app/features/cards_credits/presentation/screens/add_card_screen.dart';
-import 'package:betty_app/features/budgets_goals/presentation/screens/add_budget_screen.dart';
-import 'package:betty_app/features/budgets_goals/presentation/screens/add_goal_screen.dart';
-import 'package:betty_app/features/cards_credits/presentation/screens/credit_simulator_screen.dart';
+import 'package:beti_app/core/widgets/main_shell.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:beti_app/features/auth/presentation/screens/register_screen.dart';
+import 'package:beti_app/features/transactions/presentation/screens/add_transaction_screen.dart';
+import 'package:beti_app/features/transactions/presentation/screens/preview_correction_screen.dart';
+import 'package:beti_app/features/input_capture/presentation/screens/voice_capture_screen.dart';
+import 'package:beti_app/features/input_capture/presentation/screens/ocr_capture_screen.dart';
+import 'package:beti_app/features/cards_credits/presentation/screens/add_card_screen.dart';
+import 'package:beti_app/features/budgets_goals/presentation/screens/add_budget_screen.dart';
+import 'package:beti_app/features/budgets_goals/presentation/screens/add_goal_screen.dart';
+import 'package:beti_app/features/cards_credits/presentation/screens/credit_simulator_screen.dart';
 
 /// Provider de GoRouter que reacciona al estado de autenticación.
 final appRouterProvider = Provider<GoRouter>((ref) {

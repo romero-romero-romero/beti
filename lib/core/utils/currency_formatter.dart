@@ -1,5 +1,5 @@
 import 'package:intl/intl.dart';
-import 'package:betty_app/core/enums/currency_preference.dart';
+import 'package:beti_app/core/enums/currency_preference.dart';
 
 /// Formateador de moneda para la app.
 class CurrencyFormatter {

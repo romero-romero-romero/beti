@@ -1,9 +1,9 @@
 // lib/features/budgets_goals/data/services/budget_spending_calculator.dart
 
 import 'package:isar/isar.dart';
-import 'package:betty_app/core/utils/date_utils.dart';
-import 'package:betty_app/features/transactions/data/models/transaction_model.dart';
-import 'package:betty_app/features/budgets_goals/data/models/budget_model.dart';
+import 'package:beti_app/core/utils/date_utils.dart';
+import 'package:beti_app/features/transactions/data/models/transaction_model.dart';
+import 'package:beti_app/features/budgets_goals/data/models/budget_model.dart';
 
 /// Recalcula el gasto real (spentAmount) de cada presupuesto
 /// consultando las transacciones del período directamente en Isar.

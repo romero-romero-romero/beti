@@ -1,7 +1,7 @@
 // lib/features/financial_education/presentation/providers/financial_education_provider.dart
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/features/financial_education/data/datasources/seen_terms_prefs_ds.dart';
+import 'package:beti_app/features/financial_education/data/datasources/seen_terms_prefs_ds.dart';
 
 // ── Dependency Injection ──
 

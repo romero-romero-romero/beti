@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:betty_app/core/enums/input_method.dart';
-import 'package:betty_app/features/input_capture/presentation/providers/input_capture_provider.dart';
-import 'package:betty_app/features/intelligence/data/datasources/nlp_entity_extractor.dart';
-import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/core/enums/input_method.dart';
+import 'package:beti_app/features/input_capture/presentation/providers/input_capture_provider.dart';
+import 'package:beti_app/features/intelligence/data/datasources/nlp_entity_extractor.dart';
+import 'package:beti_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 
 /// Pantalla de captura por foto de ticket (OCR).
 /// El usuario toma una foto o la selecciona de galería.

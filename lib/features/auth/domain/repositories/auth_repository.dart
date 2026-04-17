@@ -1,4 +1,4 @@
-import 'package:betty_app/features/auth/domain/entities/user_entity.dart';
+import 'package:beti_app/features/auth/domain/entities/user_entity.dart';
 
 /// Contrato del repositorio de autenticación.
 /// La implementación decide si usa local (Isar) o remoto (Supabase).

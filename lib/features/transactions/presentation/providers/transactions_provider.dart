@@ -1,18 +1,18 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/enums/input_method.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
-import 'package:betty_app/core/providers/core_providers.dart';
-import 'package:betty_app/core/utils/uuid_generator.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/intelligence/data/datasources/categorization_engine.dart';
-import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
-import 'package:betty_app/features/transactions/data/datasources/transaction_local_ds.dart';
-import 'package:betty_app/features/transactions/data/repositories/transaction_repository_impl.dart';
-import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
-import 'package:betty_app/features/transactions/domain/repositories/transaction_repository.dart';
-import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/enums/input_method.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/providers/core_providers.dart';
+import 'package:beti_app/core/utils/uuid_generator.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/intelligence/data/datasources/categorization_engine.dart';
+import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:beti_app/features/transactions/data/datasources/transaction_local_ds.dart';
+import 'package:beti_app/features/transactions/data/repositories/transaction_repository_impl.dart';
+import 'package:beti_app/features/transactions/domain/entities/transaction_entity.dart';
+import 'package:beti_app/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 // ── Dependency Injection ──
 
 final transactionLocalDsProvider = Provider<TransactionLocalDataSource>((ref) {

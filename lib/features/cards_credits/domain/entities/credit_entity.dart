@@ -1,4 +1,4 @@
-import 'package:betty_app/core/enums/sync_status.dart';
+import 'package:beti_app/core/enums/sync_status.dart';
 
 /// Entidad de dominio de crédito/préstamo.
 /// Independiente de Isar — los Repositories mapean hacia/desde aquí.

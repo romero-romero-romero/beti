@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
-import 'package:betty_app/features/financial_education/presentation/widgets/term_info_icon.dart';
-import 'package:betty_app/features/cards_credits/data/credit_card_catalog.dart';
+import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
+import 'package:beti_app/features/financial_education/presentation/widgets/term_info_icon.dart';
+import 'package:beti_app/features/cards_credits/data/credit_card_catalog.dart';
 
 class AddCardScreen extends ConsumerStatefulWidget {
   const AddCardScreen({super.key});

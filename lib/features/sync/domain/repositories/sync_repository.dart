@@ -1,4 +1,4 @@
-import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
 
 /// Contrato del repositorio de sincronización.
 abstract class SyncRepository {

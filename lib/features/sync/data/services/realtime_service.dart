@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:betty_app/features/sync/data/services/sync_merge_service.dart';
+import 'package:beti_app/features/sync/data/services/sync_merge_service.dart';
 
 /// Servicio de Realtime: escucha cambios en PostgreSQL via Supabase Realtime
 /// y los mergea en Isar instantáneamente.

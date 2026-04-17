@@ -1,13 +1,13 @@
 import 'package:isar/isar.dart';
-import 'package:betty_app/core/constants/financial_constants.dart';
-import 'package:betty_app/core/enums/health_level.dart';
-import 'package:betty_app/core/utils/date_utils.dart';
-import 'package:betty_app/features/transactions/data/models/transaction_model.dart';
-import 'package:betty_app/features/cards_credits/data/models/credit_card_model.dart';
-import 'package:betty_app/features/cards_credits/data/models/credit_model.dart';
-import 'package:betty_app/features/budgets_goals/data/models/goal_model.dart';
-import 'package:betty_app/features/financial_health/data/models/health_snapshot_model.dart';
-import 'package:betty_app/core/utils/uuid_generator.dart';
+import 'package:beti_app/core/constants/financial_constants.dart';
+import 'package:beti_app/core/enums/health_level.dart';
+import 'package:beti_app/core/utils/date_utils.dart';
+import 'package:beti_app/features/transactions/data/models/transaction_model.dart';
+import 'package:beti_app/features/cards_credits/data/models/credit_card_model.dart';
+import 'package:beti_app/features/cards_credits/data/models/credit_model.dart';
+import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
+import 'package:beti_app/features/financial_health/data/models/health_snapshot_model.dart';
+import 'package:beti_app/core/utils/uuid_generator.dart';
 
 /// Resultado del cálculo de salud financiera.
 class HealthResult {

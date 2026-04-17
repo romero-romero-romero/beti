@@ -1,20 +1,20 @@
 // lib/features/budgets_goals/presentation/providers/budgets_goals_provider.dart
 
 import 'dart:convert';
-import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:beti_app/features/financial_health/presentation/providers/health_provider.dart';
 import 'package:isar/isar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/core/providers/core_providers.dart';
-import 'package:betty_app/core/utils/date_utils.dart';
-import 'package:betty_app/core/utils/uuid_generator.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/budgets_goals/data/models/budget_model.dart';
-import 'package:betty_app/features/budgets_goals/data/models/goal_model.dart';
-import 'package:betty_app/features/budgets_goals/data/services/budget_spending_calculator.dart';
-import 'package:betty_app/features/budgets_goals/data/services/budget_alert_engine.dart';
-import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
-import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
-import 'package:betty_app/features/budgets_goals/data/services/inflation_adjustment_service.dart';
+import 'package:beti_app/core/providers/core_providers.dart';
+import 'package:beti_app/core/utils/date_utils.dart';
+import 'package:beti_app/core/utils/uuid_generator.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/budgets_goals/data/models/budget_model.dart';
+import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
+import 'package:beti_app/features/budgets_goals/data/services/budget_spending_calculator.dart';
+import 'package:beti_app/features/budgets_goals/data/services/budget_alert_engine.dart';
+import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:beti_app/features/budgets_goals/data/services/inflation_adjustment_service.dart';
 
 // ══════════════════════════════════════════════════════════════
 // DataSources

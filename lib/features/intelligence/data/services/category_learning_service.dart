@@ -1,8 +1,8 @@
 import 'package:isar/isar.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/utils/uuid_generator.dart';
-import 'package:betty_app/features/intelligence/data/datasources/categorization_engine.dart';
-import 'package:betty_app/features/transactions/data/models/category_model.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/utils/uuid_generator.dart';
+import 'package:beti_app/features/intelligence/data/datasources/categorization_engine.dart';
+import 'package:beti_app/features/transactions/data/models/category_model.dart';
 
 /// Servicio que conecta las correcciones manuales del usuario con el
 /// CategorizationEngine y las persiste en CategoryModel (Isar).

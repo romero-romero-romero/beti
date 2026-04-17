@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/core/providers/core_providers.dart';
-import 'package:betty_app/features/auth/data/datasources/auth_local_ds.dart';
-import 'package:betty_app/features/auth/data/datasources/auth_remote_ds.dart';
-import 'package:betty_app/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:betty_app/features/auth/domain/entities/user_entity.dart';
-import 'package:betty_app/features/auth/domain/repositories/auth_repository.dart';
-import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
-import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
-import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
-import 'package:betty_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
-import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:beti_app/core/providers/core_providers.dart';
+import 'package:beti_app/features/auth/data/datasources/auth_local_ds.dart';
+import 'package:beti_app/features/auth/data/datasources/auth_remote_ds.dart';
+import 'package:beti_app/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:beti_app/features/auth/domain/entities/user_entity.dart';
+import 'package:beti_app/features/auth/domain/repositories/auth_repository.dart';
+import 'package:beti_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:beti_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
+import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
 
 // ── Dependency Injection via Riverpod ──
 

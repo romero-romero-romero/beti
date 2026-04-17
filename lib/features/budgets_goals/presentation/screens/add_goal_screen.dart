@@ -2,9 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/utils/platform_helper.dart';
-import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/utils/platform_helper.dart';
+import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
 
 class AddGoalScreen extends ConsumerStatefulWidget {
   const AddGoalScreen({super.key});

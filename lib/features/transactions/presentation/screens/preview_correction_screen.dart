@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
-import 'package:betty_app/core/utils/currency_formatter.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/intelligence/presentation/providers/category_learning_provider.dart';
-import 'package:betty_app/features/transactions/presentation/providers/transactions_provider.dart';
-import 'package:betty_app/features/financial_health/presentation/providers/health_provider.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/utils/currency_formatter.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/intelligence/presentation/providers/category_learning_provider.dart';
+import 'package:beti_app/features/transactions/presentation/providers/transactions_provider.dart';
+import 'package:beti_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 
 /// Pantalla de Vista Previa obligatoria.
 /// El usuario DEBE confirmar los datos antes de guardar.

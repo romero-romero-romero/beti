@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/features/input_capture/data/datasources/speech_local_ds.dart';
-import 'package:betty_app/features/input_capture/data/datasources/ocr_local_ds.dart';
+import 'package:beti_app/features/input_capture/data/datasources/speech_local_ds.dart';
+import 'package:beti_app/features/input_capture/data/datasources/ocr_local_ds.dart';
 
 // ── Singletons ──
 

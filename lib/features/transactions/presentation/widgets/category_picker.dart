@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:betty_app/core/enums/category_type.dart';
+import 'package:beti_app/core/enums/category_type.dart';
 
 /// Bottom sheet para seleccionar categoría manualmente.
 class CategoryPicker extends StatelessWidget {

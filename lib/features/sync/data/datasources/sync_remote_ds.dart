@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
 
 /// DataSource remoto para sincronización.
 /// Ejecuta las operaciones CRUD contra las tablas de Supabase.

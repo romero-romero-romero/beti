@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'package:betty_app/core/enums/sync_status.dart';
-import 'package:betty_app/core/mappers/enum_mapper.dart';
-import 'package:betty_app/core/utils/uuid_generator.dart';
-import 'package:betty_app/features/auth/data/datasources/auth_local_ds.dart';
-import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
-import 'package:betty_app/features/sync/domain/repositories/sync_repository.dart';
-import 'package:betty_app/features/transactions/data/datasources/transaction_local_ds.dart';
-import 'package:betty_app/features/transactions/data/models/transaction_model.dart';
-import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
-import 'package:betty_app/features/transactions/domain/repositories/transaction_repository.dart';
+import 'package:beti_app/core/enums/sync_status.dart';
+import 'package:beti_app/core/mappers/enum_mapper.dart';
+import 'package:beti_app/core/utils/uuid_generator.dart';
+import 'package:beti_app/features/auth/data/datasources/auth_local_ds.dart';
+import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:beti_app/features/sync/domain/repositories/sync_repository.dart';
+import 'package:beti_app/features/transactions/data/datasources/transaction_local_ds.dart';
+import 'package:beti_app/features/transactions/data/models/transaction_model.dart';
+import 'package:beti_app/features/transactions/domain/entities/transaction_entity.dart';
+import 'package:beti_app/features/transactions/domain/repositories/transaction_repository.dart';
 
 class TransactionRepositoryImpl implements TransactionRepository {
   final TransactionLocalDataSource _localDs;

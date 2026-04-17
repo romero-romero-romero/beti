@@ -1,20 +1,20 @@
-import 'package:betty_app/core/enums/card_network.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/enums/currency_preference.dart';
-import 'package:betty_app/core/enums/health_level.dart';
-import 'package:betty_app/core/enums/input_method.dart';
-import 'package:betty_app/core/enums/sync_status.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/enums/card_network.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/enums/currency_preference.dart';
+import 'package:beti_app/core/enums/health_level.dart';
+import 'package:beti_app/core/enums/input_method.dart';
+import 'package:beti_app/core/enums/sync_status.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
 
-import 'package:betty_app/features/auth/data/models/user_model.dart';
-import 'package:betty_app/features/budgets_goals/data/models/budget_model.dart';
-import 'package:betty_app/features/budgets_goals/data/models/goal_model.dart';
-import 'package:betty_app/features/cards_credits/data/models/credit_card_model.dart';
-import 'package:betty_app/features/cards_credits/data/models/credit_model.dart';
-import 'package:betty_app/features/financial_health/data/models/health_snapshot_model.dart';
-import 'package:betty_app/features/transactions/data/models/category_model.dart';
-import 'package:betty_app/features/transactions/data/models/transaction_model.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/features/auth/data/models/user_model.dart';
+import 'package:beti_app/features/budgets_goals/data/models/budget_model.dart';
+import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
+import 'package:beti_app/features/cards_credits/data/models/credit_card_model.dart';
+import 'package:beti_app/features/cards_credits/data/models/credit_model.dart';
+import 'package:beti_app/features/financial_health/data/models/health_snapshot_model.dart';
+import 'package:beti_app/features/transactions/data/models/category_model.dart';
+import 'package:beti_app/features/transactions/data/models/transaction_model.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 
 // ═══════════════════════════════════════════════════════════
 // Mapeo centralizado: Enums Canónicos (core/) ↔ Enums Isar

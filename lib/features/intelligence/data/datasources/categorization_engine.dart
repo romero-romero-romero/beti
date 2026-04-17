@@ -1,5 +1,5 @@
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
 
 /// Motor híbrido de categorización (MVP v2).
 ///

@@ -1,6 +1,6 @@
 import 'package:isar/isar.dart';
-import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
-import 'package:betty_app/core/constants/financial_constants.dart';
+import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:beti_app/core/constants/financial_constants.dart';
 
 /// DataSource local para la cola de sincronización.
 /// Lee y escribe SyncQueueModel en Isar.

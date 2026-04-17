@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/core/enums/health_level.dart';
-import 'package:betty_app/core/providers/core_providers.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/financial_health/data/datasources/health_engine.dart';
+import 'package:beti_app/core/enums/health_level.dart';
+import 'package:beti_app/core/providers/core_providers.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/financial_health/data/datasources/health_engine.dart';
 
 final healthEngineProvider = Provider<HealthEngine>((ref) {
   return HealthEngine(ref.watch(isarProvider));

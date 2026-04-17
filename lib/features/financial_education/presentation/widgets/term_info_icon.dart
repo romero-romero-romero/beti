@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/features/financial_education/data/financial_terms_catalog.dart';
-import 'package:betty_app/features/financial_education/presentation/providers/financial_education_provider.dart';
-import 'package:betty_app/features/financial_education/presentation/widgets/term_info_bottom_sheet.dart';
+import 'package:beti_app/features/financial_education/data/financial_terms_catalog.dart';
+import 'package:beti_app/features/financial_education/presentation/providers/financial_education_provider.dart';
+import 'package:beti_app/features/financial_education/presentation/widgets/term_info_bottom_sheet.dart';
 
 /// Ícono discreto "?" que al tocar abre el bottom sheet educativo
 /// del término financiero indicado.

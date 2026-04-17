@@ -1,7 +1,7 @@
 // lib/features/budgets_goals/data/services/budget_alert_engine.dart
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:betty_app/features/budgets_goals/data/models/budget_model.dart';
+import 'package:beti_app/features/budgets_goals/data/models/budget_model.dart';
 
 /// Evalúa presupuestos y dispara notificaciones locales instantáneas
 /// cuando se superan los umbrales de gasto (80% y 100%).

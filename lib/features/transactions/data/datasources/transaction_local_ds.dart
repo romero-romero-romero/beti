@@ -1,5 +1,5 @@
 import 'package:isar/isar.dart';
-import 'package:betty_app/features/transactions/data/models/transaction_model.dart';
+import 'package:beti_app/features/transactions/data/models/transaction_model.dart';
 
 /// DataSource local para transacciones.
 /// CRUD directo sobre Isar — fuente de verdad.

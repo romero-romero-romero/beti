@@ -1,7 +1,7 @@
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/enums/input_method.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/enums/input_method.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 
 /// Entidad de transacción del dominio.
 /// Independiente de Isar — los Repositories mapean hacia/desde aquí.

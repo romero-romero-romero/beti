@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/enums/transaction_type.dart';
-import 'package:betty_app/core/utils/currency_formatter.dart';
-import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/utils/currency_formatter.dart';
+import 'package:beti_app/features/transactions/domain/entities/transaction_entity.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 
 /// Tile de transacción minimalista inspirado en el EJEMPLO-APP.
 ///

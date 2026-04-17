@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/enums/health_level.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/enums/health_level.dart';
 
 /// Termómetro animado de Salud Financiera Emocional.
 /// Cambia color, pulso y mensaje según el nivel del usuario.

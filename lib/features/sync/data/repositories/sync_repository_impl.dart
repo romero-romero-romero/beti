@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:betty_app/core/utils/uuid_generator.dart';
-import 'package:betty_app/features/sync/data/datasources/sync_local_ds.dart';
-import 'package:betty_app/features/sync/data/datasources/sync_remote_ds.dart';
-import 'package:betty_app/features/sync/data/models/sync_queue_model.dart';
-import 'package:betty_app/features/sync/domain/repositories/sync_repository.dart';
+import 'package:beti_app/core/utils/uuid_generator.dart';
+import 'package:beti_app/features/sync/data/datasources/sync_local_ds.dart';
+import 'package:beti_app/features/sync/data/datasources/sync_remote_ds.dart';
+import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:beti_app/features/sync/domain/repositories/sync_repository.dart';
 
 class SyncRepositoryImpl implements SyncRepository {
   final SyncLocalDataSource _localDs;

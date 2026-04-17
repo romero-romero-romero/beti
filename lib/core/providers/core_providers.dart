@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:betty_app/core/database/isar_instance.dart';
+import 'package:beti_app/core/database/isar_instance.dart';
 
 /// Provider global de la instancia de Isar (fuente de verdad local).
 /// Se inicializa en main.dart antes de runApp().

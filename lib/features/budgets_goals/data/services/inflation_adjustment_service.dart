@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:betty_app/features/budgets_goals/data/models/goal_model.dart';
+import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
 
 /// Servicio de ajuste por inflación diario para metas de ahorro.
 ///

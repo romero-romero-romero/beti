@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
 
 /// Tema global de Betty con soporte para modo claro/oscuro.
 /// Incluye CupertinoThemeData para widgets adaptativos en iOS.

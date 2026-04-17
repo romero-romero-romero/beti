@@ -1,4 +1,4 @@
-import 'package:betty_app/core/constants/financial_constants.dart';
+import 'package:beti_app/core/constants/financial_constants.dart';
 
 /// Utilidades de fecha para cálculos financieros.
 class BettyDateUtils {

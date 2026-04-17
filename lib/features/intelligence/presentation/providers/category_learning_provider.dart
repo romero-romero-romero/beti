@@ -1,8 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/providers/core_providers.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/intelligence/data/services/category_learning_service.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/providers/core_providers.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/intelligence/data/services/category_learning_service.dart';
 
 /// Provider del servicio de aprendizaje de categorías.
 /// Se inicializa automáticamente cuando el usuario se autentica.

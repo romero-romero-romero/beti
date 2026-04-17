@@ -1,5 +1,5 @@
 import 'package:isar/isar.dart';
-import 'package:betty_app/features/auth/data/models/user_model.dart';
+import 'package:beti_app/features/auth/data/models/user_model.dart';
 
 class AuthLocalDataSource {
   final Isar _isar;

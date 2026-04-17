@@ -1,14 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/core/constants/app_strings.dart';
-import 'package:betty_app/core/theme/app_theme.dart';
-import 'package:betty_app/core/utils/platform_helper.dart';
-import 'package:betty_app/router/app_router.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
-import 'package:betty_app/features/sync/presentation/providers/sync_provider.dart';
-import 'package:betty_app/features/intelligence/presentation/providers/category_learning_provider.dart';
-import 'package:betty_app/features/alerts/presentation/providers/alert_provider.dart';
+import 'package:beti_app/core/constants/app_strings.dart';
+import 'package:beti_app/core/theme/app_theme.dart';
+import 'package:beti_app/core/utils/platform_helper.dart';
+import 'package:beti_app/router/app_router.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:beti_app/features/intelligence/presentation/providers/category_learning_provider.dart';
+import 'package:beti_app/features/alerts/presentation/providers/alert_provider.dart';
 
 /// Root widget de Betty.
 ///

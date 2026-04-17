@@ -1,7 +1,7 @@
-import 'package:betty_app/core/enums/transaction_type.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/features/intelligence/data/datasources/categorization_engine.dart';
-import 'package:betty_app/core/enums/payment_method.dart';
+import 'package:beti_app/core/enums/transaction_type.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/features/intelligence/data/datasources/categorization_engine.dart';
+import 'package:beti_app/core/enums/payment_method.dart';
 
 /// Resultado estructurado de la extracción NLP.
 class NlpExtractionResult {

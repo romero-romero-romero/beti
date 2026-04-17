@@ -1,6 +1,6 @@
 // lib/features/financial_education/data/financial_terms_catalog.dart
 
-import 'package:betty_app/features/financial_education/domain/entities/financial_term.dart';
+import 'package:beti_app/features/financial_education/domain/entities/financial_term.dart';
 
 /// Catálogo estático de términos financieros educativos.
 ///

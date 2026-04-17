@@ -1,4 +1,4 @@
-import 'package:betty_app/features/transactions/domain/entities/transaction_entity.dart';
+import 'package:beti_app/features/transactions/domain/entities/transaction_entity.dart';
 
 /// Contrato del repositorio de transacciones.
 abstract class TransactionRepository {

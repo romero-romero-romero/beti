@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/utils/platform_helper.dart';
-import 'package:betty_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/utils/platform_helper.dart';
+import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
 
 /// Pantalla de Perfil con configuraciones.
 ///

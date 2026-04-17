@@ -1,5 +1,5 @@
-import 'package:betty_app/core/enums/card_network.dart';
-import 'package:betty_app/core/enums/sync_status.dart';
+import 'package:beti_app/core/enums/card_network.dart';
+import 'package:beti_app/core/enums/sync_status.dart';
 
 /// Entidad de dominio de tarjeta de crédito.
 /// Independiente de Isar — los Repositories mapean hacia/desde aquí.

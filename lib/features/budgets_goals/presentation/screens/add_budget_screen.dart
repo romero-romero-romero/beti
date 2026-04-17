@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:betty_app/core/constants/app_colors.dart';
-import 'package:betty_app/core/enums/category_type.dart';
-import 'package:betty_app/core/utils/platform_helper.dart';
-import 'package:betty_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
-import 'package:betty_app/features/financial_education/presentation/widgets/term_info_icon.dart';
+import 'package:beti_app/core/constants/app_colors.dart';
+import 'package:beti_app/core/enums/category_type.dart';
+import 'package:beti_app/core/utils/platform_helper.dart';
+import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
+import 'package:beti_app/features/financial_education/presentation/widgets/term_info_icon.dart';
 
 /// Pantalla para agregar o editar un presupuesto mensual.
 class AddBudgetScreen extends ConsumerStatefulWidget {

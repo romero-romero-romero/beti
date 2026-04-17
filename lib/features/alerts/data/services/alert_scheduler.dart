@@ -3,9 +3,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:isar/isar.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
-import 'package:betty_app/core/utils/date_utils.dart';
-import 'package:betty_app/features/cards_credits/data/models/credit_card_model.dart';
-import 'package:betty_app/features/cards_credits/data/models/credit_model.dart';
+import 'package:beti_app/core/utils/date_utils.dart';
+import 'package:beti_app/features/cards_credits/data/models/credit_card_model.dart';
+import 'package:beti_app/features/cards_credits/data/models/credit_model.dart';
 
 /// Servicio de alertas locales programadas en el OS.
 ///
