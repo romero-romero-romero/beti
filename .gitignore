@@ -1,9 +1,12 @@
+# ═══════════════════════════════════════════════
 # Miscellaneous
+# ═══════════════════════════════════════════════
 *.class
 *.log
 *.pyc
 *.swp
 .DS_Store
+**/.DS_Store
 .atom/
 .build/
 .buildlog/
@@ -12,18 +15,21 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# ═══════════════════════════════════════════════
+# IDE
+# ═══════════════════════════════════════════════
+# IntelliJ / Android Studio
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# VS Code — descomentar para ignorar settings locales
 #.vscode/
 
-# Flutter/Dart/Pub related
+# ═══════════════════════════════════════════════
+# Flutter / Dart / Pub
+# ═══════════════════════════════════════════════
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -33,44 +39,54 @@ migrate_working_dir/
 .pub/
 /build/
 
-# Symbolication related
+# Symbolication
 app.*.symbols
 
-# Obfuscation related
+# Obfuscation
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# ═══════════════════════════════════════════════
+# Android
+# ═══════════════════════════════════════════════
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# Archivos generados (Riverpod e Isar)
+# ═══════════════════════════════════════════════
+# Archivos generados (Isar, Freezed, Riverpod)
+# ═══════════════════════════════════════════════
 *.g.dart
 *.freezed.dart
 *.isar
 
-cat >> .gitignore << 'EOF'
-
-# ── Plataformas removidas ──
+# ═══════════════════════════════════════════════
+# Plataformas no soportadas por Beti (mobile-only)
+# ═══════════════════════════════════════════════
 /web/
 /linux/
 /windows/
 /macos/
 
-# ── Node/React (EJEMPLO-APP no pertenece aquí) ──
+# ═══════════════════════════════════════════════
+# Node / React (contaminación de otros proyectos)
+# ═══════════════════════════════════════════════
 node_modules/
 dist/
 .next/
 package-lock.json
 
-# ── IDE extras ──
-.idea/
-*.iml
-
-# ── macOS ──
-.DS_Store
-**/.DS_Store
-EOF
-
-# Secrets
+# ═══════════════════════════════════════════════
+# Secrets — NUNCA commitear
+# ═══════════════════════════════════════════════
 .env
+.env.local
+.env.*.local
+
+# ═══════════════════════════════════════════════
+# Signing / keystores — NUNCA commitear
+# ═══════════════════════════════════════════════
+**/android/key.properties
+**/android/app/**/*.keystore
+**/android/app/**/*.jks
+**/ios/**/*.mobileprovision
+**/ios/**/*.p12
