@@ -71,3 +71,6 @@ package-lock.json
 .DS_Store
 **/.DS_Store
 EOF
+
+# Secrets
+.env
