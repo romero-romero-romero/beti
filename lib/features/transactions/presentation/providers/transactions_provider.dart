@@ -52,12 +52,14 @@ class TransactionsNotifier extends AsyncNotifier<List<TransactionEntity>> {
     await ref.read(transactionRepositoryProvider).save(transaction);
     await refresh();
     ref.invalidate(budgetsProvider);
+    await ref.read(syncProvider.notifier).pushNow();
   }
 
   Future<void> delete(String uuid) async {
     await ref.read(transactionRepositoryProvider).delete(uuid);
     await refresh();
     ref.invalidate(budgetsProvider);
+    await ref.read(syncProvider.notifier).pushNow();
   }
 }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:flutter/foundation.dart';
 
 /// Resultado de ejecutar una operación de sync.
 enum SyncExecutionResult {
@@ -33,6 +34,9 @@ class SyncRemoteDataSource {
     try {
       final data = jsonDecode(item.payload) as Map<String, dynamic>;
 
+      debugPrint(
+          '[SyncRemote] ${item.operation.name} ${item.targetCollection}/${item.targetUuid}');
+
       switch (item.operation) {
         case SyncOperation.create:
           await _client.from(item.targetCollection).upsert(data);
@@ -61,16 +65,21 @@ class SyncRemoteDataSource {
 
       return SyncExecutionResult.success;
     } on PostgrestException catch (e) {
-      // 401 => auth failure; 4xx => permanente; 5xx => transient.
+      debugPrint(
+          '[SyncRemote] PostgrestException code=${e.code} msg=${e.message} details=${e.details} hint=${e.hint}');
       return _classifyHttpError(e.code);
     } on StorageException catch (e) {
+      debugPrint(
+          '[SyncRemote] StorageException status=${e.statusCode} msg=${e.message}');
       return _classifyHttpError(e.statusCode);
-    } on AuthException {
+    } on AuthException catch (e) {
+      debugPrint('[SyncRemote] AuthException msg=${e.message}');
       return SyncExecutionResult.authFailure;
-    } on SocketException {
+    } on SocketException catch (e) {
+      debugPrint('[SyncRemote] SocketException: $e');
       return SyncExecutionResult.transientFailure;
-    } catch (_) {
-      // Desconocido — asumir transient; retryCount limpiará eventualmente.
+    } catch (e, stack) {
+      debugPrint('[SyncRemote] Unknown error: $e\n$stack');
       return SyncExecutionResult.transientFailure;
     }
   }
@@ -78,6 +87,13 @@ class SyncRemoteDataSource {
   /// Clasifica un status HTTP/error code en [SyncExecutionResult].
   SyncExecutionResult _classifyHttpError(String? code) {
     if (code == null) return SyncExecutionResult.transientFailure;
+
+    // PostgREST error codes (letras) — siempre permanentes (schema/constraint).
+    // PGRST204: columna no existe | PGRST116: no rows | PGRST200: parse error
+    if (code.startsWith('PGRST')) {
+      return SyncExecutionResult.permanentFailure;
+    }
+
     final status = int.tryParse(code);
     if (status == null) return SyncExecutionResult.transientFailure;
 

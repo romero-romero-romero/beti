@@ -27,7 +27,8 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(
     localDs: ref.watch(authLocalDsProvider),
     remoteDs: ref.watch(authRemoteDsProvider),
-    isar: ref.watch(isarProvider), // ← NUEVO
+    isar: ref.watch(isarProvider),
+    syncRepo: ref.watch(syncRepositoryProvider),
   );
 });
 

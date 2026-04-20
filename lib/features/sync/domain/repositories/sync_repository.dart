@@ -21,4 +21,8 @@ abstract class SyncRepository {
 
   /// Limpia items que excedieron el máximo de reintentos.
   Future<int> purgeExhaustedItems();
+
+  /// Intenta flushear la cola pendiente antes de logout/wipe.
+  /// Retorna true si la cola quedó vacía tras el flush.
+  Future<bool> flushBeforeWipe();
 }

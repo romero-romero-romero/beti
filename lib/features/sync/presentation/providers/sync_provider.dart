@@ -75,7 +75,8 @@ enum SyncState {
 /// - La app pasa de paused → resumed (AppLifecycleState)
 /// - La conectividad cambia de offline → online
 /// - El usuario hace login exitoso (initial pull)
-class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver {
+class SyncNotifier extends StateNotifier<SyncState>
+    with WidgetsBindingObserver {
   final SyncRepository _pushRepo;
   final SyncPullDataSource _pullDs;
   final SyncMergeService _mergeService;
@@ -120,6 +121,10 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _triggerFullSync();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden) {
+      pushNow();
     }
   }
 
@@ -138,29 +143,37 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
 
     final connectivity = _ref.read(hasInternetProvider);
     final hasInternet = connectivity.valueOrNull ?? false;
-    if (!hasInternet) return;
+    if (!hasInternet) {
+      debugPrint('[Sync] fullSync skipped: no internet');
+      return;
+    }
 
     final userId = _userId;
-    if (userId == null) return;
+    if (userId == null) {
+      debugPrint('[Sync] fullSync skipped: no userId');
+      return;
+    }
 
     _isSyncing = true;
+    final before = await _pushRepo.getPendingCount();
+    debugPrint('[Sync] fullSync start — pending: $before');
 
     try {
-      // 1. PUSH primero (para que otros dispositivos vean nuestros cambios)
       state = SyncState.pushing;
       await _executePush();
 
-      // 2. PULL después (para recibir cambios de otros dispositivos)
       state = SyncState.pulling;
       await _executePull(userId);
 
-      // 3. Refrescar UI con datos nuevos del pull
       _refreshUI();
 
       state = SyncState.completed;
       _ref.invalidate(pendingSyncCountProvider);
-    } catch (_) {
+      final after = await _pushRepo.getPendingCount();
+      debugPrint('[Sync] fullSync OK — pending: $before → $after');
+    } catch (e) {
       state = SyncState.error;
+      debugPrint('[Sync] fullSync ERROR: $e');
     } finally {
       _isSyncing = false;
       await Future.delayed(const Duration(seconds: 2));
@@ -168,14 +181,18 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
     }
   }
 
-  /// Pull inicial: descarga TODO del servidor.
+  /// Pull inicial: descarga todo del servidor.
   /// Se llama una vez después del primer login en un dispositivo nuevo.
   Future<void> initialPull() async {
     final userId = _userId;
-    if (userId == null) return;
+    if (userId == null) {
+      debugPrint('[Sync] initialPull skipped: no userId');
+      return;
+    }
 
     _isSyncing = true;
     state = SyncState.pulling;
+    debugPrint('[Sync] initialPull start for user $userId');
 
     try {
       final profileData = await _pullDs.pullProfile(userId);
@@ -184,14 +201,20 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
       }
 
       final remoteData = await _pullDs.pullAll(userId);
+      final totalRows =
+          remoteData.values.fold<int>(0, (sum, list) => sum + list.length);
+      debugPrint('[Sync] initialPull: $totalRows rows received');
+
       await _mergeService.mergeAll(remoteData);
       await _saveLastPullAt(DateTime.now().toUtc());
       _realtimeService.subscribe(userId, onDataChanged: _refreshUI);
       _refreshUI();
 
       state = SyncState.completed;
-    } catch (_) {
+      debugPrint('[Sync] initialPull OK');
+    } catch (e) {
       state = SyncState.error;
+      debugPrint('[Sync] initialPull ERROR: $e');
     } finally {
       _isSyncing = false;
       await Future.delayed(const Duration(seconds: 1));
@@ -262,11 +285,19 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
   Future<void> pushNow() async {
     final connectivity = _ref.read(hasInternetProvider);
     final hasInternet = connectivity.valueOrNull ?? false;
-    if (!hasInternet) return;
+    if (!hasInternet) {
+      debugPrint('[Sync] pushNow skipped: no internet');
+      return;
+    }
 
     try {
+      final before = await _pushRepo.getPendingCount();
       await _executePush();
-    } catch (_) {}
+      final after = await _pushRepo.getPendingCount();
+      debugPrint('[Sync] pushNow: queue $before → $after');
+    } catch (e) {
+      debugPrint('[Sync] pushNow error: $e');
+    }
   }
 
   /// Desconecta el canal de Realtime. Llamar SIEMPRE antes de hacer

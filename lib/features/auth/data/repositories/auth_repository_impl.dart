@@ -17,19 +17,23 @@ import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
 import 'package:beti_app/features/financial_health/data/models/health_snapshot_model.dart';
 import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:beti_app/features/sync/domain/repositories/sync_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _localDs;
   final AuthRemoteDataSource _remoteDs;
   final Isar _isar;
+  final SyncRepository _syncRepo;
 
   AuthRepositoryImpl({
     required AuthLocalDataSource localDs,
     required AuthRemoteDataSource remoteDs,
     required Isar isar,
+    required SyncRepository syncRepo,
   })  : _localDs = localDs,
         _remoteDs = remoteDs,
-        _isar = isar;
+        _isar = isar,
+        _syncRepo = syncRepo;
 
   @override
   Future<UserEntity> signInWithPassword({
@@ -94,6 +98,11 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signOut() async {
+    // Fix 3: último intento de flush ANTES del wipe.
+    // Si hay items pendientes que no se pueden pushear (sin red, auth failure),
+    // la cola se preserva y NO se wipea — esperará al próximo login.
+    final queueEmpty = await _syncRepo.flushBeforeWipe();
+
     await _isar.writeTxn(() async {
       await _isar.userModels.clear();
       await _isar.transactionModels.clear();
@@ -104,7 +113,10 @@ class AuthRepositoryImpl implements AuthRepository {
       await _isar.incomeBudgetModels.clear();
       await _isar.goalModels.clear();
       await _isar.healthSnapshotModels.clear();
-      await _isar.syncQueueModels.clear();
+      // Solo wipear la cola si quedó vacía tras el flush.
+      if (queueEmpty) {
+        await _isar.syncQueueModels.clear();
+      }
     });
 
     try {
@@ -112,7 +124,6 @@ class AuthRepositoryImpl implements AuthRepository {
       await prefs.remove('betty_last_pull_at');
     } catch (_) {}
 
-    // May fail without internet — intentional fire-and-forget
     try {
       await _remoteDs.signOut();
     } catch (_) {}
@@ -162,9 +173,14 @@ class AuthRepositoryImpl implements AuthRepository {
           try {
             final response = await _remoteDs.refreshSession();
 
-            // refreshSession can return a null session without throwing (A20),
-            // so treat it as an explicit failure and wipe.
             if (response.session == null) {
+              // Fix 4: si hay items pendientes, NO hacer logout silencioso.
+              // Confiar en el caché local y dejar que el usuario re-autentique
+              // manualmente sin perder datos.
+              final pending = await _syncRepo.getPendingCount();
+              if (pending > 0) {
+                return _mapCachedToEntity(cached);
+              }
               await signOut();
               return UserEntity.empty;
             }
@@ -176,11 +192,14 @@ class AuthRepositoryImpl implements AuthRepository {
             );
             return _mapCachedToEntity(cached);
           } on AuthException catch (_) {
-            // Explicit auth error means the token is invalid — wipe.
+            // Fix 4: mismo criterio con AuthException.
+            final pending = await _syncRepo.getPendingCount();
+            if (pending > 0) {
+              return _mapCachedToEntity(cached);
+            }
             await signOut();
             return UserEntity.empty;
           } catch (_) {
-            // Network error — trust the cache (offline-first).
             return _mapCachedToEntity(cached);
           }
         }

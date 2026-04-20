@@ -111,4 +111,15 @@ class SyncRepositoryImpl implements SyncRepository {
   Future<int> purgeExhaustedItems() async {
     return await _localDs.purgeExhaustedItems();
   }
+
+  @override
+  Future<bool> flushBeforeWipe() async {
+    try {
+      await processQueue();
+    } catch (_) {
+      // Sin red, auth failure, etc. — la cola se preserva.
+    }
+    final remaining = await _localDs.getPendingCount();
+    return remaining == 0;
+  }
 }
