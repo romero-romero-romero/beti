@@ -17,6 +17,14 @@ subprojects {
                 if (namespace == null) {
                     namespace project.group
                 }
+
+                // ═══════════════════════════════════════════════════
+                // Fix para isar_flutter_libs v3.1.0: compilado con
+                // compileSdk antiguo que no conoce atributos Material 3
+                // (lStar, etc). Forzamos que todos los módulos usen
+                // compileSdk 35 como la app.
+                // ═══════════════════════════════════════════════════
+                compileSdkVersion 35
             }
         }
     }

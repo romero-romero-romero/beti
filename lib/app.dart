@@ -42,13 +42,24 @@ class _BettyAppState extends ConsumerState<BettyApp> {
     final router = ref.watch(appRouterProvider);
 
     // Escuchar cambios de auth para disparar sync en cualquier transición
-    // a AuthAuthenticated (login fresco O restauración de sesión desde Isar)
+    // a AuthAuthenticated (login fresco O restauración de sesión desde Isar).
+    //
+    // C5: El flag _syncInitialized DEBE resetearse en cualquier transición
+    // fuera de AuthAuthenticated (logout, unauthenticated, error). Sin esto,
+    // un segundo login en la misma sesión del proceso no re-dispara
+    // initialPull() ni re-inicializa categoryLearning/alertProvider,
+    // dejando al usuario con Isar vacío (tras nuclear wipe) y sin pull
+    // desde Supabase.
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next is AuthAuthenticated && !_syncInitialized) {
         _syncInitialized = true;
         ref.read(syncProvider.notifier).initialPull();
         ref.read(categoryLearningProvider);
         ref.read(alertProvider);
+      } else if (next is! AuthAuthenticated && _syncInitialized) {
+        // Cualquier transición fuera de AuthAuthenticated resetea el flag
+        // para que el próximo login vuelva a inicializar la sync.
+        _syncInitialized = false;
       }
     });
 

@@ -332,6 +332,8 @@ class BudgetsNotifier extends AsyncNotifier<List<BudgetEntity>> {
           }),
         );
 
+    // C4: push inmediato tras write (offline-safe: pushNow verifica conectividad)
+    await ref.read(syncProvider.notifier).pushNow();
     ref.invalidate(healthProvider);
     await recalculate();
   }

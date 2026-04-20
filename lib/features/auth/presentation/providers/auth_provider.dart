@@ -10,6 +10,8 @@ import 'package:beti_app/features/transactions/presentation/providers/transactio
 import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
 import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
 import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
+import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart' as sb show Supabase, AuthChangeEvent, AuthState;
 
 // ── Dependency Injection via Riverpod ──
 
@@ -62,9 +64,27 @@ class AuthError extends AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
-  final Ref _ref; // ← NUEVO
+  final Ref _ref;
+  late final StreamSubscription<sb.AuthState> _authSub;
 
-  AuthNotifier(this._repository, this._ref) : super(const AuthInitial());
+  AuthNotifier(this._repository, this._ref) : super(const AuthInitial()) {
+    // Escuchar eventos de auth del SDK (OAuth callback, token refresh).
+    // Sin esto, tras completar OAuth Google la app no reacciona al regreso
+    // del browser y el usuario debe reiniciar la app para ver la sesión.
+    _authSub = sb.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+      if (event == sb.AuthChangeEvent.signedIn ||
+          event == sb.AuthChangeEvent.tokenRefreshed) {
+        checkAuthStatus();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub.cancel();
+    super.dispose();
+  }
 
   /// Verifica si hay sesión activa (local o remota).
   Future<void> checkAuthStatus() async {
@@ -139,14 +159,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Cerrar sesión.
+  ///
+  /// A2: Orden obligatorio:
+  ///   1. Unsubscribe del Realtime (evita escrituras post-wipe)
+  ///   2. Repository.signOut() (nuclear wipe + clear session)
+  ///   3. state = AuthUnauthenticated
+  ///   4. Invalidación desacoplada de providers
   Future<void> signOut() async {
+    // 1. Cortar realtime ANTES del wipe.
+    // Si falla (ej. sin red), continuamos igual — el wipe no debe bloquearse.
+    try {
+      await _ref.read(syncProvider.notifier).disposeRealtime();
+    } catch (_) {
+      // Silencioso: no queremos que un error de red impida el logout.
+    }
+
+    // 2. Nuclear wipe + clear session de Supabase.
     await _repository.signOut();
 
+    // 3. Cambiar state para que los listeners reaccionen.
     state = const AuthUnauthenticated();
 
-    // Desacoplar invalidaciones para evitar CircularDependencyError.
-    // Al cambiar state primero, los providers que hacen ref.watch(authProvider)
-    // ya ven AuthUnauthenticated y retornan vacío al reconstruirse.
+    // 4. Desacoplar invalidaciones para evitar CircularDependencyError.
     Future.microtask(() {
       _ref.invalidate(healthProvider);
       _ref.invalidate(transactionsProvider);

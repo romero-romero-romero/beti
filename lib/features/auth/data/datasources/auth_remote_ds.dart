@@ -30,7 +30,8 @@ class AuthRemoteDataSource {
   Future<bool> signInWithGoogle() async {
     return await _client.auth.signInWithOAuth(
       OAuthProvider.google,
-      redirectTo: 'io.supabase.bettyapp://auth-callback',
+      redirectTo: 'app.beti.mx://auth-callback',
+      authScreenLaunchMode: LaunchMode.externalApplication,
     );
   }
 

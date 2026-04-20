@@ -18,6 +18,7 @@ import 'package:beti_app/features/budgets_goals/data/models/budget_model.dart';
 import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
 import 'package:beti_app/features/financial_health/data/models/health_snapshot_model.dart';
 import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _localDs;
@@ -161,20 +162,34 @@ class AuthRepositoryImpl implements AuthRepository {
             cached.cachedRefreshToken!.isNotEmpty) {
           try {
             final response = await _remoteDs.refreshSession();
-            if (response.session != null) {
-              await _localDs.updateTokens(
-                supabaseId: cached.supabaseId,
-                accessToken: response.session!.accessToken,
-                refreshToken: response.session!.refreshToken ?? '',
-              );
-              return _mapCachedToEntity(cached);
+
+            // A20: refreshSession puede retornar AuthResponse con
+            // session == null sin lanzar. Tratar como fallo explícito.
+            if (response.session == null) {
+              debugPrint('Refresh returned null session — token inválido');
+              await signOut();
+              return UserEntity.empty;
             }
-          } catch (_) {
-            debugPrint('Refresh session failed — invalidating local cache');
+
+            await _localDs.updateTokens(
+              supabaseId: cached.supabaseId,
+              accessToken: response.session!.accessToken,
+              refreshToken: response.session!.refreshToken ?? '',
+            );
+            return _mapCachedToEntity(cached);
+          } on AuthException catch (e) {
+            // A3 (parcial): error explícito de auth → token inválido → wipe
+            debugPrint('AuthException en refresh: ${e.message} — wipe');
+            await signOut();
+            return UserEntity.empty;
+          } catch (e) {
+            // Error de red u otro → confiar en cache (offline-first)
+            debugPrint('Refresh falló por red: $e — usando cache');
+            return _mapCachedToEntity(cached);
           }
         }
 
-        // Token inválido o usuario eliminado → nuclear wipe
+        // Sin refresh token → no hay forma de recuperar sesión
         await signOut();
         return UserEntity.empty;
       } catch (_) {

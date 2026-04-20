@@ -101,6 +101,20 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
         if (hasInternet) _triggerFullSync();
       });
     });
+
+    // C6: Re-disparar sync cuando auth pasa a AuthAuthenticated.
+    // Cubre caso de conectividad que emitió "online" antes de que la
+    // sesión se restaurara. Solo dispara sync delta (no initial pull) —
+    // el initialPull es responsabilidad de app.dart.
+    _ref.listen(authProvider, (previous, next) {
+      if (next is AuthAuthenticated && previous is! AuthAuthenticated) {
+        // Delay pequeño para que initialPull (llamado desde app.dart)
+        // se ejecute primero si es un login fresco.
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted && _userId != null) _triggerFullSync();
+        });
+      }
+    });
   }
 
   @override
@@ -233,10 +247,30 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
     await _saveLastPullAt(DateTime.now().toUtc());
   }
 
-  /// Push: procesa la cola existente.
+  /// Push: procesa la cola. Si falla por auth, refresca sesión y reintenta una vez.
   Future<void> _executePush() async {
-    final synced = await _pushRepo.processQueue();
-    debugPrint('Push: $synced items sincronizados');
+    try {
+      final synced = await _pushRepo.processQueue();
+      debugPrint('Push: $synced items sincronizados');
+    } on SyncAuthException catch (e) {
+      // A12: token expirado. Forzar refresh vía checkAuthStatus (que internamente
+      // llama refreshSession + clean logout si falla) y reintentar una vez.
+      debugPrint('Push: auth failure tras ${e.successCountBeforeAuth} items — refrescando token');
+      await _ref.read(authProvider.notifier).checkAuthStatus();
+
+      // Si el refresh triggereó logout, _userId ya es null y no tiene sentido reintentar.
+      if (_userId == null) {
+        debugPrint('Push: sesión perdida tras refresh — abortando');
+        return;
+      }
+
+      try {
+        final retrySync = await _pushRepo.processQueue();
+        debugPrint('Push (retry post-auth): $retrySync items sincronizados');
+      } on SyncAuthException {
+        debugPrint('Push: auth sigue fallando tras refresh — usuario debe re-loguearse');
+      }
+    }
   }
 
   /// Fuerza una sincronización manual completa.
@@ -257,6 +291,17 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
     } catch (e) {
       debugPrint('pushNow error: $e');
     }
+  }
+
+  /// Desconecta el canal de Realtime. Llamar SIEMPRE antes de hacer
+  /// signOut/nuclear wipe para evitar que eventos Postgres en vuelo
+  /// escriban datos del usuario anterior en Isar después del wipe.
+  ///
+  /// A2: Sin esto, un INSERT/UPDATE del servidor que llega en el
+  /// milisegundo entre "empezar wipe" y "channel.unsubscribe()" termina
+  /// repoblando Isar con registros del usuario que acaba de cerrar sesión.
+  Future<void> disposeRealtime() async {
+    await _realtimeService.unsubscribe();
   }
 
   // ── SharedPreferences para lastPullAt ──

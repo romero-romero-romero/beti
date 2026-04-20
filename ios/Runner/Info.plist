@@ -59,5 +59,18 @@
 	<array>
     <string>_supabase._tcp</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>mx.beti.app.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app.beti.mx</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

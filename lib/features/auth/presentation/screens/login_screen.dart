@@ -96,7 +96,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                    'assets/images/Beti-icon.png',
+                    'assets/images/Beti-logins.png',
                     width: size.height * 0.12,
                     height: size.height * 0.12,
                   ),
