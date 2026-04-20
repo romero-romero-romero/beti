@@ -95,7 +95,6 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
   ) : super(SyncState.idle) {
     WidgetsBinding.instance.addObserver(this);
 
-    // Escuchar cambios de conectividad
     _ref.listen(connectivityProvider, (previous, next) {
       next.whenData((hasInternet) {
         if (hasInternet) _triggerFullSync();
@@ -160,9 +159,8 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
 
       state = SyncState.completed;
       _ref.invalidate(pendingSyncCountProvider);
-    } catch (e) {
+    } catch (_) {
       state = SyncState.error;
-      debugPrint('SyncNotifier: error → $e');
     } finally {
       _isSyncing = false;
       await Future.delayed(const Duration(seconds: 2));
@@ -180,30 +178,20 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
     state = SyncState.pulling;
 
     try {
-      // Pull del perfil
       final profileData = await _pullDs.pullProfile(userId);
       if (profileData != null) {
         await _mergeService.mergeProfile(profileData);
       }
 
-      // Pull de todas las tablas
       final remoteData = await _pullDs.pullAll(userId);
-      final result = await _mergeService.mergeAll(remoteData);
-      debugPrint('Initial pull: $result');
-
-      // Guardar timestamp del pull
+      await _mergeService.mergeAll(remoteData);
       await _saveLastPullAt(DateTime.now().toUtc());
-
-      // Iniciar escucha en tiempo real para multi-dispositivo
       _realtimeService.subscribe(userId, onDataChanged: _refreshUI);
-
-      // Refrescar UI con datos descargados
       _refreshUI();
 
       state = SyncState.completed;
-    } catch (e) {
+    } catch (_) {
       state = SyncState.error;
-      debugPrint('Initial pull error: $e');
     } finally {
       _isSyncing = false;
       await Future.delayed(const Duration(seconds: 1));
@@ -250,25 +238,15 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
   /// Push: procesa la cola. Si falla por auth, refresca sesión y reintenta una vez.
   Future<void> _executePush() async {
     try {
-      final synced = await _pushRepo.processQueue();
-      debugPrint('Push: $synced items sincronizados');
-    } on SyncAuthException catch (e) {
-      // A12: token expirado. Forzar refresh vía checkAuthStatus (que internamente
-      // llama refreshSession + clean logout si falla) y reintentar una vez.
-      debugPrint('Push: auth failure tras ${e.successCountBeforeAuth} items — refrescando token');
+      await _pushRepo.processQueue();
+    } on SyncAuthException {
+      // A12: token expirado — refresh y reintentar una vez.
       await _ref.read(authProvider.notifier).checkAuthStatus();
-
-      // Si el refresh triggereó logout, _userId ya es null y no tiene sentido reintentar.
-      if (_userId == null) {
-        debugPrint('Push: sesión perdida tras refresh — abortando');
-        return;
-      }
-
+      if (_userId == null) return;
       try {
-        final retrySync = await _pushRepo.processQueue();
-        debugPrint('Push (retry post-auth): $retrySync items sincronizados');
+        await _pushRepo.processQueue();
       } on SyncAuthException {
-        debugPrint('Push: auth sigue fallando tras refresh — usuario debe re-loguearse');
+        // Token sigue inválido — el usuario debe re-loguearse.
       }
     }
   }
@@ -288,9 +266,7 @@ class SyncNotifier extends StateNotifier<SyncState> with WidgetsBindingObserver 
 
     try {
       await _executePush();
-    } catch (e) {
-      debugPrint('pushNow error: $e');
-    }
+    } catch (_) {}
   }
 
   /// Desconecta el canal de Realtime. Llamar SIEMPRE antes de hacer

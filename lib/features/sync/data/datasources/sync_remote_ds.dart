@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
 
@@ -62,24 +61,16 @@ class SyncRemoteDataSource {
 
       return SyncExecutionResult.success;
     } on PostgrestException catch (e) {
-      // Postgrest expone el status HTTP en e.code (string) o lo infiere
-      // del message. 401 => auth failure; 4xx => permanente; 5xx => transient.
-      debugPrint('Postgrest error ${e.code}: ${e.message}');
+      // 401 => auth failure; 4xx => permanente; 5xx => transient.
       return _classifyHttpError(e.code);
     } on StorageException catch (e) {
-      debugPrint('Storage error ${e.statusCode}: ${e.message}');
       return _classifyHttpError(e.statusCode);
-    } on AuthException catch (e) {
-      debugPrint('Auth error en sync: ${e.message}');
+    } on AuthException {
       return SyncExecutionResult.authFailure;
-    } on SocketException catch (e) {
-      debugPrint('Network error en sync: $e');
+    } on SocketException {
       return SyncExecutionResult.transientFailure;
-    } catch (e) {
-      // Cualquier otro error desconocido — asumir transient (más seguro:
-      // no purgar por precaución, el retryCount eventualmente limpiará).
-      debugPrint(
-          'Sync operation failed for ${item.targetCollection}/${item.targetUuid}: $e');
+    } catch (_) {
+      // Desconocido — asumir transient; retryCount limpiará eventualmente.
       return SyncExecutionResult.transientFailure;
     }
   }

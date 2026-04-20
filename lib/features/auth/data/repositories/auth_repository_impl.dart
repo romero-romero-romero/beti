@@ -1,5 +1,4 @@
 import 'package:beti_app/features/budgets_goals/data/models/income_budget_model.dart';
-import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -9,7 +8,6 @@ import 'package:beti_app/features/auth/data/models/user_model.dart';
 import 'package:beti_app/features/auth/domain/entities/user_entity.dart';
 import 'package:beti_app/features/auth/domain/repositories/auth_repository.dart';
 
-// Imports de TODAS las colecciones para el nuclear wipe
 import 'package:beti_app/features/transactions/data/models/transaction_model.dart';
 import 'package:beti_app/features/transactions/data/models/category_model.dart';
 import 'package:beti_app/features/cards_credits/data/models/credit_card_model.dart';
@@ -33,8 +31,6 @@ class AuthRepositoryImpl implements AuthRepository {
         _remoteDs = remoteDs,
         _isar = isar;
 
-  // ── Sign In ──
-
   @override
   Future<UserEntity> signInWithPassword({
     required String email,
@@ -53,7 +49,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
       throw Exception('Login failed: no user returned');
     } catch (e) {
-      debugPrint('Remote sign in failed: $e');
       final cached = await _localDs.getCachedSession();
       if (cached != null && cached.email == email) {
         return _mapCachedToEntity(cached);
@@ -61,8 +56,6 @@ class AuthRepositoryImpl implements AuthRepository {
       rethrow;
     }
   }
-
-  // ── Sign Up ──
 
   @override
   Future<UserEntity> signUp({
@@ -89,8 +82,6 @@ class AuthRepositoryImpl implements AuthRepository {
     throw Exception('Sign up failed: no user returned');
   }
 
-  // ── Google / Reset ──
-
   @override
   Future<bool> signInWithGoogle() async {
     return await _remoteDs.signInWithGoogle();
@@ -101,11 +92,8 @@ class AuthRepositoryImpl implements AuthRepository {
     await _remoteDs.resetPassword(email);
   }
 
-  // ── Sign Out (NUCLEAR WIPE) ──
-
   @override
   Future<void> signOut() async {
-    // 1. Limpiar TODAS las colecciones de Isar
     await _isar.writeTxn(() async {
       await _isar.userModels.clear();
       await _isar.transactionModels.clear();
@@ -119,45 +107,34 @@ class AuthRepositoryImpl implements AuthRepository {
       await _isar.syncQueueModels.clear();
     });
 
-    // 2. Limpiar SharedPreferences de sync
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('betty_last_pull_at');
-    } catch (e) {
-      debugPrint('Failed to clear SharedPreferences: $e');
-    }
+    } catch (_) {}
 
-    // 3. Logout remoto (puede fallar sin internet)
+    // May fail without internet — intentional fire-and-forget
     try {
       await _remoteDs.signOut();
-    } catch (e) {
-      debugPrint('Remote sign out failed (offline): $e');
-    }
+    } catch (_) {}
   }
-
-  // ── Get Current User (con validación de tokens) ──
 
   @override
   Future<UserEntity> getCurrentUser() async {
-    // 1. Verificar sesión local en Isar
     final cached = await _localDs.getCachedSession();
 
     if (cached != null) {
-      // 2. Si hay internet, validar que la sesión siga viva
       try {
         final session = _remoteDs.currentSession;
 
         if (session != null) {
-          // SDK tiene sesión → refrescar tokens Y metadata en cache
           await _localDs.updateTokens(
             supabaseId: cached.supabaseId,
             accessToken: session.accessToken,
             refreshToken: session.refreshToken ?? '',
           );
 
-          // Re-hidratar displayName/avatar desde metadata fresca del SDK.
-          // Cubre casos donde el primer OAuth callback se cacheó sin metadata
-          // o donde el usuario actualizó su perfil en Google.
+          // Re-hydrate display name/avatar from fresh SDK metadata to cover
+          // cases where the first OAuth callback cached stale or empty metadata.
           final freshUser = _remoteDs.currentUser;
           if (freshUser != null) {
             final meta = freshUser.userMetadata;
@@ -173,7 +150,6 @@ class AuthRepositoryImpl implements AuthRepository {
                 displayName: fullName,
                 avatarUrl: avatar,
               );
-              // Refrescar el objeto local para mapear con datos nuevos
               final refreshed = await _localDs.getCachedSession();
               if (refreshed != null) return _mapCachedToEntity(refreshed);
             }
@@ -181,16 +157,14 @@ class AuthRepositoryImpl implements AuthRepository {
           return _mapCachedToEntity(cached);
         }
 
-        // SDK no tiene sesión → intentar refresh
         if (cached.cachedRefreshToken != null &&
             cached.cachedRefreshToken!.isNotEmpty) {
           try {
             final response = await _remoteDs.refreshSession();
 
-            // A20: refreshSession puede retornar AuthResponse con
-            // session == null sin lanzar. Tratar como fallo explícito.
+            // refreshSession can return a null session without throwing (A20),
+            // so treat it as an explicit failure and wipe.
             if (response.session == null) {
-              debugPrint('Refresh returned null session — token inválido');
               await signOut();
               return UserEntity.empty;
             }
@@ -201,28 +175,24 @@ class AuthRepositoryImpl implements AuthRepository {
               refreshToken: response.session!.refreshToken ?? '',
             );
             return _mapCachedToEntity(cached);
-          } on AuthException catch (e) {
-            // A3 (parcial): error explícito de auth → token inválido → wipe
-            debugPrint('AuthException en refresh: ${e.message} — wipe');
+          } on AuthException catch (_) {
+            // Explicit auth error means the token is invalid — wipe.
             await signOut();
             return UserEntity.empty;
-          } catch (e) {
-            // Error de red u otro → confiar en cache (offline-first)
-            debugPrint('Refresh falló por red: $e — usando cache');
+          } catch (_) {
+            // Network error — trust the cache (offline-first).
             return _mapCachedToEntity(cached);
           }
         }
 
-        // Sin refresh token → no hay forma de recuperar sesión
         await signOut();
         return UserEntity.empty;
       } catch (_) {
-        // Sin internet: confiar en el cache (correcto para offline-first)
+        // No internet — trust the cache (offline-first).
         return _mapCachedToEntity(cached);
       }
     }
 
-    // 3. No hay sesión local: verificar Supabase directamente
     final user = _remoteDs.currentUser;
     final session = _remoteDs.currentSession;
     if (user != null && session != null) {
@@ -233,13 +203,7 @@ class AuthRepositoryImpl implements AuthRepository {
     return UserEntity.empty;
   }
 
-  // ── Helpers privados ──
-
-  Future<void> _cacheUserSession(dynamic user, dynamic session) async {
-    final fullName = user.userMetadata?['full_name'] as String?;
-    debugPrint(
-        '_cacheUserSession: fullName="$fullName" metadata=${user.userMetadata}');
-
+  Future<void> _cacheUserSession(User user, Session session) async {
     final now = DateTime.now();
     final userModel = UserModel()
       ..supabaseId = user.id
@@ -260,20 +224,18 @@ class AuthRepositoryImpl implements AuthRepository {
     await _localDs.cacheSession(userModel);
   }
 
-  UserEntity _mapUserToEntity(dynamic user, {bool isAuthenticated = false}) {
+  UserEntity _mapUserToEntity(User user, {bool isAuthenticated = false}) {
+    final meta = user.userMetadata;
     return UserEntity(
       supabaseId: user.id,
       email: user.email ?? '',
-      displayName: user.userMetadata?['full_name'] as String?,
-      avatarUrl: user.userMetadata?['avatar_url'] as String?,
+      displayName: meta?['full_name'] as String? ?? meta?['name'] as String?,
+      avatarUrl: meta?['avatar_url'] as String? ?? meta?['picture'] as String?,
       isAuthenticated: isAuthenticated,
     );
   }
 
   UserEntity _mapCachedToEntity(UserModel cached) {
-    debugPrint(
-        '_mapCachedToEntity: displayName="${cached.displayName}" email="${cached.email}"');
-
     return UserEntity(
       supabaseId: cached.supabaseId,
       email: cached.email,

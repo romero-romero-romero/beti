@@ -36,13 +36,13 @@ void main() async {
       ),
     );
   } catch (e) {
-    debugPrint('Supabase init failed (offline mode): $e');
+    // Supabase init failed (offline mode)
   }
 
   // 4. Lanzar la app con Riverpod
   runApp(
     const ProviderScope(
-      child: BettyApp(),
+      child: BetiApp(),
     ),
   );
 }

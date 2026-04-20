@@ -12,16 +12,11 @@ import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
 import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
 import 'package:beti_app/features/budgets_goals/data/models/income_budget_model.dart';
 
-/// Singleton que gestiona la instancia única de Isar Database.
-///
-/// Se inicializa UNA vez en main.dart antes de runApp().
-/// Todos los DataSources locales reciben esta instancia vía Riverpod.
 class IsarInstance {
   static Isar? _instance;
 
   IsarInstance._();
 
-  /// Retorna la instancia de Isar. Lanza si no fue inicializada.
   static Isar get instance {
     if (_instance == null) {
       throw StateError(
@@ -32,16 +27,6 @@ class IsarInstance {
     return _instance!;
   }
 
-  /// Inicializa Isar con TODOS los schemas de la app.
-  ///
-  /// Uso en main.dart:
-  /// ```dart
-  /// void main() async {
-  ///   WidgetsFlutterBinding.ensureInitialized();
-  ///   await IsarInstance.initialize();
-  ///   runApp(const ProviderScope(child: BettyApp()));
-  /// }
-  /// ```
   static Future<Isar> initialize() async {
     if (_instance != null) return _instance!;
 
@@ -61,14 +46,13 @@ class IsarInstance {
         SyncQueueModelSchema,
       ],
       directory: dir.path,
-      name: 'betty_db',
+      name: 'beti_db',
       inspector: !const bool.fromEnvironment('dart.vm.product'),
     );
 
     return _instance!;
   }
 
-  /// Cierra la instancia (útil en tests).
   static Future<void> close() async {
     await _instance?.close();
     _instance = null;

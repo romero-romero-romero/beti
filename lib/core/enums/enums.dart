@@ -1,4 +1,4 @@
-/// Enums canónicos de Betty.
+/// Enums canónicos de Beti.
 ///
 /// NOTA: Los modelos Isar (@collection) declaran sus propios enums locales
 /// porque isar_generator requiere que los enums estén en el mismo archivo

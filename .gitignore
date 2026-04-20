@@ -25,7 +25,7 @@ migrate_working_dir/
 .idea/
 
 # VS Code — descomentar para ignorar settings locales
-#.vscode/
+.vscode/
 
 # ═══════════════════════════════════════════════
 # Flutter / Dart / Pub

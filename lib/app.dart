@@ -16,14 +16,14 @@ import 'package:beti_app/features/alerts/presentation/providers/alert_provider.d
 /// toman su color del CupertinoTheme más cercano en el árbol.
 /// Lo inyectamos DENTRO del MaterialApp.router via `builder`,
 /// lo cual garantiza que el Theme de Material ya existe en context.
-class BettyApp extends ConsumerStatefulWidget {
-  const BettyApp({super.key});
+class BetiApp extends ConsumerStatefulWidget {
+  const BetiApp({super.key});
 
   @override
-  ConsumerState<BettyApp> createState() => _BettyAppState();
+  ConsumerState<BetiApp> createState() => _BetiAppState();
 }
 
-class _BettyAppState extends ConsumerState<BettyApp> {
+class _BetiAppState extends ConsumerState<BetiApp> {
   bool _syncInitialized = false;
 
   @override

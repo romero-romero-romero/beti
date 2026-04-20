@@ -17,7 +17,7 @@ dependencies:
   # ── Auth & Backend (solo backup) ──
   supabase_flutter: ^2.12.0
   flutter_dotenv: ^5.2.1
-  shared_preferences: ^2.0.15
+  shared_preferences: ^2.3.0
 
   # ── Base de Datos Local (Fuente de Verdad) ──
   isar: ^3.1.0+1
