@@ -148,12 +148,36 @@ class AuthRepositoryImpl implements AuthRepository {
         final session = _remoteDs.currentSession;
 
         if (session != null) {
-          // SDK tiene sesión → refrescar tokens en cache
+          // SDK tiene sesión → refrescar tokens Y metadata en cache
           await _localDs.updateTokens(
             supabaseId: cached.supabaseId,
             accessToken: session.accessToken,
             refreshToken: session.refreshToken ?? '',
           );
+
+          // Re-hidratar displayName/avatar desde metadata fresca del SDK.
+          // Cubre casos donde el primer OAuth callback se cacheó sin metadata
+          // o donde el usuario actualizó su perfil en Google.
+          final freshUser = _remoteDs.currentUser;
+          if (freshUser != null) {
+            final meta = freshUser.userMetadata;
+            final fullName =
+                meta?['full_name'] as String? ?? meta?['name'] as String?;
+            final avatar =
+                meta?['avatar_url'] as String? ?? meta?['picture'] as String?;
+
+            if ((fullName != null && fullName != cached.displayName) ||
+                (avatar != null && avatar != cached.avatarUrl)) {
+              await _localDs.updateMetadata(
+                supabaseId: cached.supabaseId,
+                displayName: fullName,
+                avatarUrl: avatar,
+              );
+              // Refrescar el objeto local para mapear con datos nuevos
+              final refreshed = await _localDs.getCachedSession();
+              if (refreshed != null) return _mapCachedToEntity(refreshed);
+            }
+          }
           return _mapCachedToEntity(cached);
         }
 
@@ -211,16 +235,19 @@ class AuthRepositoryImpl implements AuthRepository {
 
   // ── Helpers privados ──
 
-  Future<void> _cacheUserSession(
-    dynamic user,
-    dynamic session,
-  ) async {
+  Future<void> _cacheUserSession(dynamic user, dynamic session) async {
+    final fullName = user.userMetadata?['full_name'] as String?;
+    debugPrint(
+        '_cacheUserSession: fullName="$fullName" metadata=${user.userMetadata}');
+
     final now = DateTime.now();
     final userModel = UserModel()
       ..supabaseId = user.id
       ..email = user.email ?? ''
-      ..displayName = user.userMetadata?['full_name'] as String?
-      ..avatarUrl = user.userMetadata?['avatar_url'] as String?
+      ..displayName = (user.userMetadata?['full_name'] ??
+          user.userMetadata?['name']) as String?
+      ..avatarUrl = (user.userMetadata?['avatar_url'] ??
+          user.userMetadata?['picture']) as String?
       ..cachedAccessToken = session.accessToken
       ..cachedRefreshToken = session.refreshToken
       ..lastAuthAt = now
@@ -244,6 +271,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   UserEntity _mapCachedToEntity(UserModel cached) {
+    debugPrint(
+        '_mapCachedToEntity: displayName="${cached.displayName}" email="${cached.email}"');
+
     return UserEntity(
       supabaseId: cached.supabaseId,
       email: cached.email,

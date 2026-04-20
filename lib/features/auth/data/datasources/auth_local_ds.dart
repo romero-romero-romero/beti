@@ -21,6 +21,25 @@ class AuthLocalDataSource {
     });
   }
 
+  Future<void> updateMetadata({
+    required String supabaseId,
+    String? displayName,
+    String? avatarUrl,
+  }) async {
+    await _isar.writeTxn(() async {
+      final user = await _isar.userModels
+          .filter()
+          .supabaseIdEqualTo(supabaseId)
+          .findFirst();
+      if (user != null) {
+        if (displayName != null) user.displayName = displayName;
+        if (avatarUrl != null) user.avatarUrl = avatarUrl;
+        user.updatedAt = DateTime.now();
+        await _isar.userModels.put(user);
+      }
+    });
+  }
+
   Future<UserModel?> getCachedSession() async {
     return await _isar.userModels.where().findFirst();
   }
