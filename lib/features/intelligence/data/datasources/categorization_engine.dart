@@ -1,15 +1,30 @@
 import 'package:beti_app/core/enums/category_type.dart';
 import 'package:beti_app/core/enums/transaction_type.dart';
+import 'package:beti_app/features/intelligence/data/datasources/tflite_categorizer_service.dart';
 
-/// Motor híbrido de categorización (MVP v2).
+/// Motor híbrido de categorización (v3 con TFLite).
 ///
-/// Estrategia de 2 niveles:
-///   Nivel 1 — Historial del usuario: si el usuario ya categorizó manualmente
-///             una descripción similar, respetar esa decisión.
-///   Nivel 2 — Keywords estáticas: fallback al mapa de palabras clave.
+/// Estrategia de 3 niveles, en orden estricto de prioridad:
+///   Nivel 0 — Historial del usuario (overrides aprendidos):
+///             Si el usuario ya categorizó manualmente una frase idéntica,
+///             respetar SIEMPRE esa decisión. Tiene prioridad absoluta
+///             sobre el modelo y los keywords.
+///   Nivel 1 — Modelo TFLite (red neuronal embedding + GAP + dense):
+///             Si el modelo está cargado Y la predicción es confiable
+///             (confidence ≥ 0.65 + ≥1 token conocido), usar su predicción.
+///   Nivel 2 — Keywords estáticas: fallback final al mapa de palabras clave.
+///
+/// **Por qué este orden:**
+///   - Overrides van primero porque representan intent explícito del usuario:
+///     ningún modelo debe sobrescribir lo que el usuario ya corrigió.
+///   - TFLite va segundo porque generaliza mejor a frases no vistas
+///     (ej: "fui al cardiólogo" → health, sin tener "cardiólogo" en keywords).
+///   - Keywords van al final como red de seguridad para cuando el modelo
+///     no está cargado (primer arranque, error de assets) o no confía.
 ///
 /// Las correcciones manuales alimentan [userOverrides] que se persisten
-/// en CategoryModel (Isar) y se cargan al iniciar la app.
+/// en CategoryModel (Isar) y, en una fase futura, alimentarán el
+/// fine-tuning del modelo TFLite.
 class CategorizationEngine {
   CategorizationEngine._();
 
@@ -73,15 +88,57 @@ class CategorizationEngine {
 
   /// Predice la categoría basándose en la descripción.
   /// Retorna [CategoryType.other] si no encuentra coincidencia.
+  ///
+  /// Sigue la jerarquía de 3 niveles documentada en la clase. La
+  /// descripción se normaliza UNA sola vez al inicio y se reusa en todos
+  /// los niveles para garantizar consistencia.
   static CategoryType predict(String description) {
     final normalized = _normalize(description);
 
-    // ── Nivel 1: Buscar en historial del usuario ──
+    // ── Nivel 0: Historial del usuario (prioridad absoluta) ──
     final fromHistory = _predictFromHistory(normalized);
     if (fromHistory != null) return fromHistory;
 
-    // ── Nivel 2: Keywords estáticas ──
+    // ── Nivel 1: Modelo TFLite (si está cargado y confiado) ──
+    // Pasamos la descripción ORIGINAL al servicio TFLite, no la normalizada,
+    // porque el TextPreprocessor del servicio aplica su propia normalización
+    // que es espejo del pipeline de entrenamiento Python. Pasar texto ya
+    // normalizado por _normalize() de aquí podría introducir doble-normalización
+    // o divergencias sutiles si en el futuro se cambia uno y no el otro.
+    final fromTflite = _predictFromTflite(description);
+    if (fromTflite != null) return fromTflite;
+
+    // ── Nivel 2: Keywords estáticas (red de seguridad) ──
     return _predictFromKeywords(normalized);
+  }
+
+  /// Intenta predecir con el modelo TFLite.
+  ///
+  /// Retorna `null` en cualquiera de estos casos:
+  ///   - El servicio TFLite no se ha inicializado todavía
+  ///     (ej: arranque temprano de la app, antes de que main.dart termine).
+  ///   - La predicción no supera el umbral de confianza.
+  ///   - Cualquier excepción inesperada (capturada para no tirar la app
+  ///     entera por un fallo del modelo — caemos al fallback de keywords).
+  ///
+  /// **Decisión arquitectónica:** este método swallow-eats las excepciones
+  /// del servicio TFLite a propósito. Una falla aquí NO debe tirar la
+  /// categorización completa; el flujo de transacciones es crítico y debe
+  /// seguir funcionando aunque el modelo esté roto.
+  static CategoryType? _predictFromTflite(String description) {
+    final service = TfliteCategorizerService.instance;
+    if (!service.isReady) return null;
+
+    try {
+      final prediction = service.predict(description);
+      if (!prediction.isReliable) return null;
+      return prediction.category;
+    } catch (_) {
+      // Fail-soft: cualquier error del modelo cae al siguiente nivel.
+      // No logueamos aquí para no inundar la consola en cada categorización.
+      // La telemetría (Sub-fase 3.4) llevará el conteo de fallos.
+      return null;
+    }
   }
 
   /// Busca coincidencia en los overrides del usuario.

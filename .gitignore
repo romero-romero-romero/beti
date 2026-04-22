@@ -90,3 +90,31 @@ package-lock.json
 **/android/app/**/*.jks
 **/ios/**/*.mobileprovision
 **/ios/**/*.p12
+
+# ═══════════════════════════════════════════════
+# ML Training (Fase 3 — TFLite)
+# ═══════════════════════════════════════════════
+# Entornos virtuales de Python
+tools/ml_training/venv/
+tools/ml_training/.venv/
+tools/ml_training/__pycache__/
+tools/ml_training/**/__pycache__/
+tools/ml_training/*.pyc
+
+# Artefactos intermedios de entrenamiento (regenerables)
+tools/ml_training/output/checkpoints/
+tools/ml_training/output/logs/
+tools/ml_training/output/*.h5
+
+# NO ignorar: el modelo final .tflite, vocab.json y labels.json
+# deben ir al repo porque se embeben en assets/ml/ del APK
+!tools/ml_training/output/beti_categorizer.tflite
+!tools/ml_training/output/vocab.json
+!tools/ml_training/output/labels.json
+
+# ═══════════════════════════════════════════════
+# ML Assets (Fase 3) — SÍ van al repo
+# ═══════════════════════════════════════════════
+!assets/ml/
+!assets/ml/*.tflite
+!assets/ml/*.json

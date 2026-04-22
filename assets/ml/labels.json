@@ -1,0 +1,22 @@
+{
+  "0": "clothing",
+  "1": "debtPayment",
+  "2": "education",
+  "3": "entertainment",
+  "4": "food",
+  "5": "freelance",
+  "6": "gifts",
+  "7": "groceries",
+  "8": "health",
+  "9": "housing",
+  "10": "investment",
+  "11": "other",
+  "12": "otherIncome",
+  "13": "personalCare",
+  "14": "pets",
+  "15": "refund",
+  "16": "salary",
+  "17": "subscriptions",
+  "18": "transport",
+  "19": "utilities"
+}

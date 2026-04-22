@@ -1,0 +1,42 @@
+{
+  "architecture": {
+    "type": "Embedding + GAP + Dense",
+    "embedding_dim": 16,
+    "dense_units": 32,
+    "dropout_rate": 0.3,
+    "max_seq_length": 8,
+    "total_params": 17812
+  },
+  "training": {
+    "optimizer": "Adam",
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "max_epochs": 30,
+    "actual_epochs": 30,
+    "early_stop_patience": 5,
+    "seed": 42
+  },
+  "dataset": {
+    "total_examples": 8000,
+    "train_size": 6000,
+    "val_size": 1200,
+    "test_size": 800,
+    "vocab_size": 1038,
+    "num_classes": 20
+  },
+  "metrics": {
+    "keras_test_accuracy": 0.9962499737739563,
+    "keras_test_top3_accuracy": 1.0,
+    "keras_test_loss": 0.014842375181615353,
+    "tflite_test_accuracy": 0.99625,
+    "tflite_test_top3_accuracy": 1.0,
+    "keras_to_tflite_drift": 2.622604367008563e-08,
+    "final_val_accuracy": 0.9858333468437195
+  },
+  "top_confusions": {
+    "clothing → investment": 1,
+    "education → transport": 1,
+    "investment → clothing": 1
+  },
+  "artifact_size_kb": 23.54
+}

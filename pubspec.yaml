@@ -39,6 +39,9 @@ dependencies:
   speech_to_text: ^7.0.0
   google_mlkit_text_recognition: ^0.14.0
   image_picker: ^1.1.2
+  
+  # ── Machine Learning (Fase 3) ──
+  tflite_flutter: ^0.10.4
 
 dev_dependencies:
   flutter_test:
@@ -57,6 +60,7 @@ flutter:
     - .env
     - assets/
     - assets/images/
+    - assets/ml/
 
 flutter_launcher_icons:
   android: true

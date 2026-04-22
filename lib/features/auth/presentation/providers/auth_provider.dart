@@ -10,6 +10,7 @@ import 'package:beti_app/features/transactions/presentation/providers/transactio
 import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
 import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
 import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
+import 'package:beti_app/features/intelligence/presentation/providers/tflite_categorizer_provider.dart';
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb show Supabase, AuthChangeEvent, AuthState;
 
@@ -173,6 +174,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _ref.read(syncProvider.notifier).disposeRealtime();
     } catch (_) {
       // Silencioso: no queremos que un error de red impida el logout.
+    }
+
+    // 1b. Liberar el intérprete TFLite (memoria nativa fuera del GC).
+    // Sin esto hay leak de ~2 MB por sesión cuando el usuario hace login
+    // → logout → login en la misma sesión del proceso.
+    try {
+      _ref.read(tfliteCategorizerProvider.notifier).disposeService();
+    } catch (_) {
+      // Silencioso: si el servicio nunca se inicializó, dispose es no-op.
     }
 
     // 2. Nuclear wipe + clear session de Supabase.

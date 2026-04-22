@@ -1,0 +1,109 @@
+{
+  "food": [
+    "restaurante", "fonda", "comedor", "cafeteria", "cafe", "starbucks",
+    "comida", "cena", "almuerzo", "desayuno", "brunch", "lonche",
+    "tacos", "torta", "quesadilla", "tamales", "pozole", "birria",
+    "carnitas", "barbacoa", "mole", "chilaquiles", "cochinita", "aguachile",
+    "pizza", "hamburguesa", "sushi", "mariscos", "antojitos", "taqueria",
+    "uber eats", "rappi", "didi food", "domicilio"
+  ],
+  "transport": [
+    "uber", "didi", "cabify", "taxi", "metro", "metrobus", "mexibus",
+    "camion", "combi", "microbus", "gasolina", "pemex", "estacionamiento",
+    "parking", "caseta", "peaje", "tag", "televia", "iave",
+    "verificacion", "tenencia", "mecanico", "taller", "refaccion",
+    "vuelo", "avion", "volaris", "aeromexico", "flixbus", "ado"
+  ],
+  "housing": [
+    "renta", "alquiler", "hipoteca", "predial", "mantenimiento",
+    "mudanza", "cerrajero", "plomero", "electricista", "pintura",
+    "home depot", "mueble", "colchon", "refrigerador", "lavadora",
+    "cuota mantenimiento", "vigilancia", "boiler", "minisplit"
+  ],
+  "utilities": [
+    "luz", "agua", "gas natural", "gas lp", "cfe", "siapa",
+    "internet", "telefono", "celular", "recarga", "telmex", "izzi",
+    "totalplay", "megacable", "telcel", "att", "movistar", "sky"
+  ],
+  "health": [
+    "doctor", "medico", "dentista", "psicologo", "consulta",
+    "hospital", "clinica", "laboratorio", "imss", "issste",
+    "farmacia", "similares", "benavides", "san pablo", "del ahorro",
+    "medicina", "medicamento", "receta", "lentes", "vacuna"
+  ],
+  "education": [
+    "escuela", "universidad", "colegio", "prepa", "kinder",
+    "unam", "ipn", "udg", "tec", "iteso",
+    "colegiatura", "inscripcion", "matricula", "examen",
+    "curso", "taller", "diplomado", "udemy", "platzi", "coursera",
+    "libro", "papeleria", "mochila", "uniforme escolar"
+  ],
+  "entertainment": [
+    "netflix", "spotify", "disney", "hbo", "amazon prime", "youtube premium",
+    "cine", "cinepolis", "cinemex", "concierto", "teatro", "museo",
+    "boleto", "ticketmaster", "bar", "antro", "cantina",
+    "videojuego", "steam", "playstation", "nintendo",
+    "parque", "balneario", "six flags", "xcaret", "zoologico"
+  ],
+  "clothing": [
+    "ropa", "zapatos", "tenis", "camisa", "pantalon", "vestido",
+    "chamarra", "sudadera", "playera", "blusa", "bolsa",
+    "zara", "h&m", "liverpool", "suburbia", "coppel", "elektra",
+    "nike", "adidas", "puma", "levis"
+  ],
+  "subscriptions": [
+    "suscripcion", "membresia", "plan mensual", "plan anual",
+    "apple one", "icloud", "google one", "office 365", "microsoft 365",
+    "adobe", "canva pro", "notion", "chatgpt plus", "gym"
+  ],
+  "debtPayment": [
+    "pago tarjeta", "pago credito", "mensualidad", "abono",
+    "pago minimo", "credito hipotecario", "credito automotriz",
+    "prestamo personal", "financiera", "kueski", "mercado credito"
+  ],
+  "groceries": [
+    "super", "supermercado", "mercado", "tianguis", "central abastos",
+    "walmart", "soriana", "chedraui", "bodega aurrera", "costco",
+    "sam's club", "city market", "la comer", "fresko", "heb",
+    "oxxo", "seven eleven", "circle k", "tendejon", "abarrotes",
+    "despensa", "mandado"
+  ],
+  "personalCare": [
+    "estetica", "peluqueria", "barberia", "salon belleza", "spa",
+    "manicure", "pedicure", "masaje", "depilacion", "facial",
+    "shampoo", "crema", "maquillaje", "perfume", "sephora",
+    "ulta", "sally beauty", "farmacia belleza"
+  ],
+  "gifts": [
+    "regalo", "aguinaldo", "propina", "obsequio", "detalle",
+    "cumpleanos", "boda", "baby shower", "navidad", "reyes",
+    "dia madres", "dia padre", "san valentin"
+  ],
+  "pets": [
+    "veterinario", "vacuna perro", "consulta veterinaria",
+    "croquetas", "alimento perro", "alimento gato", "arena gatos",
+    "petco", "pet shop", "bano perro", "estetica canina", "collar"
+  ],
+  "salary": [
+    "sueldo", "salario", "nomina", "quincena", "pago empresa",
+    "deposito nomina", "raya", "paga"
+  ],
+  "freelance": [
+    "freelance", "proyecto", "cliente", "factura cliente",
+    "consultoria", "honorarios", "trabajo independiente"
+  ],
+  "investment": [
+    "dividendo", "interes", "rendimiento", "cetes", "cetesdirecto",
+    "gbm", "kuspit", "bursanet", "bolsa", "cripto", "bitso", "binance"
+  ],
+  "refund": [
+    "reembolso", "devolucion", "cancelacion", "cashback", "bonificacion"
+  ],
+  "otherIncome": [
+    "venta", "mercado libre", "amazon vendedor", "segunda mano",
+    "regalo dinero", "prestamo recibido", "bono", "premio"
+  ],
+  "other": [
+    "otro", "miscelaneo", "varios", "desconocido", "sin categoria"
+  ]
+}

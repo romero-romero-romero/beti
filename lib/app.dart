@@ -8,7 +8,9 @@ import 'package:beti_app/router/app_router.dart';
 import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
 import 'package:beti_app/features/intelligence/presentation/providers/category_learning_provider.dart';
+import 'package:beti_app/features/intelligence/presentation/providers/tflite_categorizer_provider.dart';
 import 'package:beti_app/features/alerts/presentation/providers/alert_provider.dart';
+
 
 /// Root widget de Betty.
 ///
@@ -56,6 +58,10 @@ class _BetiAppState extends ConsumerState<BetiApp> {
         ref.read(syncProvider.notifier).initialPull();
         ref.read(categoryLearningProvider);
         ref.read(alertProvider);
+        // Cargar modelo TFLite en background. No bloquea el render del
+        // primer frame: si tarda o falla, la categorización cae al
+        // fallback de keywords (Nivel 2 del CategorizationEngine).
+        scheduleTfliteInit(ref);
       } else if (next is! AuthAuthenticated && _syncInitialized) {
         // Cualquier transición fuera de AuthAuthenticated resetea el flag
         // para que el próximo login vuelva a inicializar la sync.
