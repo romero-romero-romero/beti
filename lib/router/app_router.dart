@@ -12,6 +12,8 @@ import 'package:beti_app/features/cards_credits/presentation/screens/add_card_sc
 import 'package:beti_app/features/budgets_goals/presentation/screens/add_budget_screen.dart';
 import 'package:beti_app/features/budgets_goals/presentation/screens/add_goal_screen.dart';
 import 'package:beti_app/features/cards_credits/presentation/screens/credit_simulator_screen.dart';
+import 'package:flutter/foundation.dart';
+import 'package:beti_app/features/diagnostics/presentation/screens/ocr_evaluator_screen.dart';
 
 /// Provider de GoRouter que reacciona al estado de autenticación.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -89,6 +91,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'addGoal',
         builder: (context, state) => const AddGoalScreen(),
       ),
+      // ── Dev tools (solo debug) ──
+      if (kDebugMode)
+        GoRoute(
+          path: '/dev/ocr-evaluator',
+          name: 'ocrEvaluator',
+          builder: (context, state) => const OcrEvaluatorScreen(),
+        ),
     ],
   );
 });

@@ -71,21 +71,26 @@ class OcrLocalDataSource {
       }
     }
 
-    // Paso 2.5: "IMPORTE" solo — monto puede estar en la línea siguiente
+    // Paso 2.5: "IMPORTE" o "TOTAL" solos — monto puede estar en línea siguiente
+    // FIX 1: Terminales bancarias (BBVA/Getnet/BanBajío/BANSi/Afirme)
+    // emiten "IMPORTE" como etiqueta sola y el monto en la siguiente línea
+    // o en la misma línea pero con basura OCR entre medio.
     for (int i = 0; i < lines.length; i++) {
       final upper = lines[i].toUpperCase().trim();
       if (_isExcludedLine(upper)) continue;
       if (RegExp(r'^[TI1]MPORTE$|^TOTA[L1]$|^[TI]OTAL$').hasMatch(upper)) {
         final sameLine = _parseAmountFromLine(lines[i]);
         if (sameLine != null && sameLine > 0) return sameLine;
-        if (i + 1 < lines.length) {
-          final nextLine = _parseAmountFromLine(lines[i + 1]);
+        // Buscar en hasta 3 líneas siguientes (terminales bancarias
+        // pueden tener líneas de ruido entre la etiqueta y el número)
+        for (int j = i + 1; j <= i + 3 && j < lines.length; j++) {
+          final nextLine = _parseAmountFromLine(lines[j]);
           if (nextLine != null && nextLine > 0) return nextLine;
         }
       }
     }
 
-    // Paso 3: "COBRO", "VENTA"
+    // Paso 3: "COBRO", "VENTA TOTAL"
     for (final line in lines.reversed) {
       final upper = line.toUpperCase().trim();
       if (_isExcludedLine(upper)) continue;
@@ -95,7 +100,7 @@ class OcrLocalDataSource {
       }
     }
 
-    // Paso 4: "ENTREGADO" (lo que pagó el cliente)
+    // Paso 4: "ENTREGADO" / "PAGO CON" (lo que pagó el cliente)
     for (final line in lines) {
       final upper = line.toUpperCase().trim();
       if (upper.contains('ENTREGADO') || upper.contains('PAGO CON')) {
@@ -104,12 +109,13 @@ class OcrLocalDataSource {
       }
     }
 
-    // Paso 5: "$ XX.XX MXN" en cualquier línea
+    // Paso 5: "$ XX.XX MXN" / "$ XX.XX M.N." en cualquier línea
     for (final line in lines) {
       final upper = line.toUpperCase().trim();
       if (_isExcludedLine(upper)) continue;
-      final mxnMatch = RegExp(r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*MXN')
-          .firstMatch(line);
+      final mxnMatch =
+          RegExp(r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:MXN|M\.N\.)')
+              .firstMatch(line);
       if (mxnMatch != null) {
         final raw = mxnMatch.group(1)?.replaceAll(',', '');
         if (raw != null) {
@@ -117,6 +123,83 @@ class OcrLocalDataSource {
           if (value != null && value > 0) return value;
         }
       }
+    }
+
+    // ── FIX 2: Terminales bancarias con monto fragmentado ──────────────────
+    // Patrón: "IMPORTE $ 78 J0 MN", "IIPORTE: $ 125 00", "$ 56 00 XN"
+    // El OCR separa el signo $, los dígitos y el símbolo MN/MXN con espacios
+    // o inserta basura. Reconstruimos el monto uniendo tokens numéricos
+    // adyacentes al símbolo $ en la misma línea.
+    for (final line in lines) {
+      final upper = line.toUpperCase().trim();
+      if (_isExcludedLine(upper)) continue;
+      // Solo aplicar en líneas que claramente son de monto de terminal
+      if (!upper.contains('IMPORTE') &&
+          !upper.contains('IIPORTE') &&
+          !upper.contains('IIMPORTE') &&
+          !RegExp(r'\$').hasMatch(line)) { continue; }
+
+      final amount = _parseFragmentedAmount(line);
+      if (amount != null && amount > 0) return amount;
+    }
+
+    // ── FIX 3: Mercado Pago ────────────────────────────────────────────────
+    // Patrón: "$ 740.00 ('x$740 00)" o "$ 385.00 (1x $ 335. 00)"
+    // El monto real es el primer número tras el $ antes del paréntesis.
+    for (final line in lines) {
+      if (!line.toUpperCase().contains('MERCADO') &&
+          !line.contains('(1x') &&
+          !line.contains("('x")) { continue; }
+      final mp = RegExp(r'\$\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)(?:\s*\()')
+          .firstMatch(line);
+      if (mp != null) {
+        final raw = mp.group(1)?.replaceAll(',', '').replaceAll(' ', '');
+        if (raw != null) {
+          final value = double.tryParse(raw);
+          if (value != null && value > 0) return value;
+        }
+      }
+      // Fallback: primer $ con número en la línea de Mercado Pago
+      final mpFallback =
+          RegExp(r'\$\s*(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?)').firstMatch(line);
+      if (mpFallback != null) {
+        final raw = mpFallback.group(1)?.replaceAll(',', '');
+        if (raw != null) {
+          final value = double.tryParse(raw);
+          if (value != null && value > 0) return value;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // ── FIX 2 helper: reconstruye monto fragmentado por OCR ──────────────────
+  // Ejemplo: "IMPORTE $ 78 J0 MN" → busca el $ y toma el primer grupo
+  // de dígitos (con posible separador decimal roto) ignorando basura.
+  double? _parseFragmentedAmount(String line) {
+    // Normalizar: reemplazar letras O/o entre dígitos que parecen 0
+    final normalized = line
+        .replaceAll(RegExp(r'(?<=\d)[oO](?=\d)'), '0')
+        .replaceAll(RegExp(r'(?<=\d)[lI](?=\d)'), '1');
+
+    // Buscar secuencia: $ seguido de número(s) con posible espacio decimal
+    // "$ 78 00" → 78.00 / "$ 125 00" → 125.00 / "$ 4530" → 4530
+    final match = RegExp(
+            r'\$\s*(\d{1,3}(?:[,\s]\d{3})*)\s+(\d{2})\b(?!\d)')
+        .firstMatch(normalized);
+    if (match != null) {
+      final intPart = match.group(1)!.replaceAll(RegExp(r'[,\s]'), '');
+      final decPart = match.group(2)!;
+      final value = double.tryParse('$intPart.$decPart');
+      if (value != null && value > 0) return value;
+    }
+
+    // Patrón simple: $ seguido de número entero (sin decimales fragmentados)
+    final simple = RegExp(r'\$\s*(\d{2,6})(?!\d)').firstMatch(normalized);
+    if (simple != null) {
+      final value = double.tryParse(simple.group(1)!);
+      if (value != null && value > 0) return value;
     }
 
     return null;
@@ -145,8 +228,14 @@ class OcrLocalDataSource {
 
   // Toma el último monto de la línea (en tickets MX el total va al final)
   double? _parseAmountFromLine(String line) {
-    final matches =
-        RegExp(r'\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)').allMatches(line).toList();
+    // Normalizar OCR: O→0 e I/l→1 entre dígitos
+    final normalized = line
+        .replaceAll(RegExp(r'(?<=\d)[oO](?=\d)'), '0')
+        .replaceAll(RegExp(r'(?<=\d)[lI](?=\d)'), '1');
+
+    final matches = RegExp(r'\$?\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)')
+        .allMatches(normalized)
+        .toList();
     if (matches.isEmpty) return null;
     for (final match in matches.reversed) {
       final raw = match.group(1)?.replaceAll(',', '');
@@ -160,58 +249,164 @@ class OcrLocalDataSource {
 
   // ═══════════════════════════════════════════════════════════
   // Extracción de fecha — formatos mexicanos
+  // FIX 4: Soporte para fechas verbales usadas por terminales
+  // bancarias y algunos POS: "ABR 27; 26", "19ABR 26",
+  // "19FEB26", "25 Jan'26", "9 Apr'26", "23 ABRIL 2026",
+  // "20 MARZO 2026"
   // ═══════════════════════════════════════════════════════════
 
+  // Mapa de abreviaciones de mes (ES e EN) → número
+  static const _monthMap = {
+    // Español completo
+    'ENERO': 1, 'FEBRERO': 2, 'MARZO': 3, 'ABRIL': 4,
+    'MAYO': 5, 'JUNIO': 6, 'JULIO': 7, 'AGOSTO': 8,
+    'SEPTIEMBRE': 9, 'OCTUBRE': 10, 'NOVIEMBRE': 11, 'DICIEMBRE': 12,
+    // Español abreviado
+    'ENE': 1, 'FEB': 2, 'MAR': 3, 'ABR': 4,
+    'MAY': 5, 'JUN': 6, 'JUL': 7, 'AGO': 8,
+    'SEP': 9, 'OCT': 10, 'NOV': 11, 'DIC': 12,
+    // Inglés abreviado (algunos POS como Starbucks/Helados)
+    'JAN': 1, 'APR': 4, 'AUG': 8, 'DEC': 12,
+  };
+
   DateTime? _extractDate(String text) {
-    // Formato ISO: yyyy-mm-dd (algunos POS modernos)
+    final upper = text.toUpperCase();
+
+    // ── Formato ISO: yyyy-mm-dd ──────────────────────────────
     final isoMatch =
         RegExp(r'(\d{4})[/\-](\d{1,2})[/\-](\d{1,2})').firstMatch(text);
     if (isoMatch != null) {
-      final year = int.tryParse(isoMatch.group(1) ?? '');
-      final month = int.tryParse(isoMatch.group(2) ?? '');
-      final day = int.tryParse(isoMatch.group(3) ?? '');
-      if (year != null &&
-          month != null &&
-          day != null &&
-          year >= 2020 &&
-          year <= 2030 &&
-          month >= 1 &&
-          month <= 12 &&
-          day >= 1 &&
-          day <= 31) {
-        try {
-          return DateTime(year, month, day);
-        } catch (_) {}
+      final y = int.tryParse(isoMatch.group(1) ?? '');
+      final m = int.tryParse(isoMatch.group(2) ?? '');
+      final d = int.tryParse(isoMatch.group(3) ?? '');
+      if (_isValidDate(y, m, d)) {
+        try { return DateTime(y!, m!, d!); } catch (_) {}
       }
     }
 
-    final patterns = [
+    // ── Formatos numéricos dd/mm/yyyy y dd/mm/yy ────────────
+    final numPatterns = [
       RegExp(r'(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})'),
       RegExp(r'(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2})'),
     ];
-
-    for (final regex in patterns) {
+    for (final regex in numPatterns) {
       final match = regex.firstMatch(text);
       if (match != null) {
-        final day = int.tryParse(match.group(1) ?? '');
-        final month = int.tryParse(match.group(2) ?? '');
-        var year = int.tryParse(match.group(3) ?? '');
-        if (day != null && month != null && year != null) {
-          if (year < 100) year += 2000;
-          if (year >= 2020 &&
-              year <= 2030 &&
-              month >= 1 &&
-              month <= 12 &&
-              day >= 1 &&
-              day <= 31) {
-            try {
-              return DateTime(year, month, day);
-            } catch (_) {}
-          }
+        final d = int.tryParse(match.group(1) ?? '');
+        final m = int.tryParse(match.group(2) ?? '');
+        var y = int.tryParse(match.group(3) ?? '');
+        if (y != null && y < 100) y += 2000;
+        if (_isValidDate(y, m, d)) {
+          try { return DateTime(y!, m!, d!); } catch (_) {}
         }
       }
     }
+
+    // ── FIX 4A: "dd/mm/yy-HH.mm" (Mercado Pago) ────────────
+    // Patrón: "04/04/26- 12.59" o "30/03/26- 13 38"
+    final mpDate =
+        RegExp(r'(\d{2})/(\d{2})/(\d{2})[–\-]').firstMatch(text);
+    if (mpDate != null) {
+      final d = int.tryParse(mpDate.group(1) ?? '');
+      final m = int.tryParse(mpDate.group(2) ?? '');
+      var y = int.tryParse(mpDate.group(3) ?? '');
+      if (y != null && y < 100) y += 2000;
+      if (_isValidDate(y, m, d)) {
+        try { return DateTime(y!, m!, d!); } catch (_) {}
+      }
+    }
+
+    // ── FIX 4B: "ddMES yy" / "ddMESyy" (BBVA terminal) ─────
+    // Patrón: "19ABR 26", "19FEB26", "18MAR26", "24ABR26"
+    final bbvaDate =
+        RegExp(r"(\d{1,2})\s*(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)\s*['\x60]?(\d{2,4})",
+            caseSensitive: false)
+            .firstMatch(upper);
+    if (bbvaDate != null) {
+      final d = int.tryParse(bbvaDate.group(1) ?? '');
+      final m = _monthMap[bbvaDate.group(2)?.toUpperCase()];
+      var y = int.tryParse(bbvaDate.group(3) ?? '');
+      if (y != null && y < 100) y += 2000;
+      if (_isValidDate(y, m, d)) {
+        try { return DateTime(y!, m!, d!); } catch (_) {}
+      }
+    }
+
+    // ── FIX 4C: "MES dd; yy" / "MES dd, yy" (BBVA terminal) ─
+    // Patrón: "ABR 27; 26" → dia=27, mes=4, año=2026
+    final bbvaDate2 =
+        RegExp(r'(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)'
+                r'\s+(\d{1,2})[;,\s]+(\d{2,4})',
+            caseSensitive: false)
+            .firstMatch(upper);
+    if (bbvaDate2 != null) {
+      final m = _monthMap[bbvaDate2.group(1)?.toUpperCase()];
+      final d = int.tryParse(bbvaDate2.group(2) ?? '');
+      var y = int.tryParse(bbvaDate2.group(3) ?? '');
+      if (y != null && y < 100) y += 2000;
+      if (_isValidDate(y, m, d)) {
+        try { return DateTime(y!, m!, d!); } catch (_) {}
+      }
+    }
+
+    // ── FIX 4D: "dd Mon'yy" / "dd Apr'26" (POS inglés) ──────
+    // Patrón: "25 Jan'26", "9 Apr'26"
+    final engDate =
+        RegExp(r"(\d{1,2})\s+(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)"
+                r"\s*['\`]?\s*(\d{2,4})",
+            caseSensitive: false)
+            .firstMatch(upper);
+    if (engDate != null) {
+      final d = int.tryParse(engDate.group(1) ?? '');
+      final m = _monthMap[engDate.group(2)?.toUpperCase()];
+      var y = int.tryParse(engDate.group(3) ?? '');
+      if (y != null && y < 100) y += 2000;
+      if (_isValidDate(y, m, d)) {
+        try { return DateTime(y!, m!, d!); } catch (_) {}
+      }
+    }
+
+    // ── FIX 4E: "dd MESESPAÑOL yyyy" ────────────────────────
+    // Patrón: "23 ABRIL 2026", "20 MARZO 2026"
+    final esFullDate = RegExp(
+            r'(\d{1,2})\s+(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO'
+            r'|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\s+(\d{4})',
+            caseSensitive: false)
+        .firstMatch(upper);
+    if (esFullDate != null) {
+      final d = int.tryParse(esFullDate.group(1) ?? '');
+      final m = _monthMap[esFullDate.group(2)?.toUpperCase()];
+      final y = int.tryParse(esFullDate.group(3) ?? '');
+      if (_isValidDate(y, m, d)) {
+        try { return DateTime(y!, m!, d!); } catch (_) {}
+      }
+    }
+
+    // ── FIX 4F: "FECHA ddMESyy" en terminales BBVA ──────────
+    // Patrón: "FECHA 19ABR 26" (la palabra FECHA precede)
+    final fechaPrefix = RegExp(
+            r'FECHA\s+(\d{1,2})\s*'
+            r'(ENE|FEB|MAR|ABR|MAY|JUN|JUL|AGO|SEP|OCT|NOV|DIC)'
+            r'\s*(\d{2,4})',
+            caseSensitive: false)
+        .firstMatch(upper);
+    if (fechaPrefix != null) {
+      final d = int.tryParse(fechaPrefix.group(1) ?? '');
+      final m = _monthMap[fechaPrefix.group(2)?.toUpperCase()];
+      var y = int.tryParse(fechaPrefix.group(3) ?? '');
+      if (y != null && y < 100) y += 2000;
+      if (_isValidDate(y, m, d)) {
+        try { return DateTime(y!, m!, d!); } catch (_) {}
+      }
+    }
+
     return null;
+  }
+
+  /// Valida que año/mes/día sean valores coherentes para un ticket mexicano.
+  bool _isValidDate(int? y, int? m, int? d) {
+    if (y == null || m == null || d == null) return false;
+    return y >= 2020 && y <= 2030 && m >= 1 && m <= 12 && d >= 1 && d <= 31;
   }
 
   // ═══════════════════════════════════════════════════════════

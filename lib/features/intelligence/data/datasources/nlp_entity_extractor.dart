@@ -100,28 +100,24 @@ class NlpEntityExtractor {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════
+ // ═══════════════════════════════════════════════════════════
   // Extracción de monto
   // ═══════════════════════════════════════════════════════════
 
   static double? _extractAmount(String text) {
-    // Prioridad 1: monto numérico explícito ($500, 1,234.56, 500 pesos)
     final numeric = _extractNumericAmount(text);
     if (numeric != null) return numeric;
-
-    // Prioridad 2: monto en palabras ("quinientos", "mil doscientos")
     return _extractWordAmount(text);
   }
 
   static double? _extractNumericAmount(String text) {
-    // Buscar patrones: $1,234.56 | 500 pesos | 1234.50
     final patterns = [
-      // "$500" o "$ 500" con decimales opcionales
+      // "$500" o "$ 2,000" con decimales opcionales
       RegExp(r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)'),
-      // "500 pesos" / "500 varos" / "500 bolas"
-      RegExp(r'(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:pesos|varos|bolas|mxn)'),
-      // Número suelto (>= 2 dígitos para evitar falsos positivos)
-      RegExp(r'(?<!\d)(\d{2,3}(?:,\d{3})*(?:\.\d{1,2})?)(?!\d)'),
+      // "2000 pesos" / "15000 varos" — sin límite de dígitos
+      RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:pesos|varos|bolas|mxn)'),
+      // Número suelto >= 2 dígitos, sin límite superior
+      RegExp(r'(?<!\d)(\d{2,}(?:,\d{3})*(?:\.\d{1,2})?)(?!\d)'),
     ];
 
     for (final regex in patterns) {
@@ -137,78 +133,39 @@ class NlpEntityExtractor {
     return null;
   }
 
-  /// Extrae montos en español hablado con soporte de composición.
-  /// "mil quinientos" → 1500, "doscientos cincuenta" → 250
   static double? _extractWordAmount(String text) {
     final words = text.split(RegExp(r'\s+'));
 
-    // Mapas de valores
     const units = {
-      'un': 1,
-      'uno': 1,
-      'una': 1,
-      'dos': 2,
-      'tres': 3,
-      'cuatro': 4,
-      'cinco': 5,
-      'seis': 6,
-      'siete': 7,
-      'ocho': 8,
-      'nueve': 9,
+      'un': 1, 'uno': 1, 'una': 1, 'dos': 2, 'tres': 3,
+      'cuatro': 4, 'cinco': 5, 'seis': 6, 'siete': 7,
+      'ocho': 8, 'nueve': 9,
     };
     const teens = {
-      'diez': 10,
-      'once': 11,
-      'doce': 12,
-      'trece': 13,
-      'catorce': 14,
-      'quince': 15,
-      'dieciseis': 16,
-      'diecisiete': 17,
-      'dieciocho': 18,
-      'diecinueve': 19,
+      'diez': 10, 'once': 11, 'doce': 12, 'trece': 13,
+      'catorce': 14, 'quince': 15, 'dieciseis': 16,
+      'diecisiete': 17, 'dieciocho': 18, 'diecinueve': 19,
     };
     const tens = {
-      'veinte': 20,
-      'veintiuno': 21,
-      'veintidos': 22,
-      'veintitres': 23,
-      'veinticuatro': 24,
-      'veinticinco': 25,
-      'veintiseis': 26,
-      'veintisiete': 27,
-      'veintiocho': 28,
-      'veintinueve': 29,
-      'treinta': 30,
-      'cuarenta': 40,
-      'cincuenta': 50,
-      'sesenta': 60,
-      'setenta': 70,
-      'ochenta': 80,
-      'noventa': 90,
+      'veinte': 20, 'veintiuno': 21, 'veintidos': 22,
+      'veintitres': 23, 'veinticuatro': 24, 'veinticinco': 25,
+      'veintiseis': 26, 'veintisiete': 27, 'veintiocho': 28,
+      'veintinueve': 29, 'treinta': 30, 'cuarenta': 40,
+      'cincuenta': 50, 'sesenta': 60, 'setenta': 70,
+      'ochenta': 80, 'noventa': 90,
     };
     const hundreds = {
-      'cien': 100,
-      'ciento': 100,
-      'doscientos': 200,
-      'doscientas': 200,
-      'trescientos': 300,
-      'trescientas': 300,
-      'cuatrocientos': 400,
-      'cuatrocientas': 400,
-      'quinientos': 500,
-      'quinientas': 500,
-      'seiscientos': 600,
-      'seiscientas': 600,
-      'setecientos': 700,
-      'setecientas': 700,
-      'ochocientos': 800,
-      'ochocientas': 800,
-      'novecientos': 900,
-      'novecientas': 900,
+      'cien': 100, 'ciento': 100,
+      'doscientos': 200, 'doscientas': 200,
+      'trescientos': 300, 'trescientas': 300,
+      'cuatrocientos': 400, 'cuatrocientas': 400,
+      'quinientos': 500, 'quinientas': 500,
+      'seiscientos': 600, 'seiscientas': 600,
+      'setecientos': 700, 'setecientas': 700,
+      'ochocientos': 800, 'ochocientas': 800,
+      'novecientos': 900, 'novecientas': 900,
     };
 
-    // Buscar secuencia de palabras numéricas contiguas
     int? startIdx;
     int? endIdx;
 
@@ -219,13 +176,12 @@ class NlpEntityExtractor {
           tens.containsKey(w) ||
           hundreds.containsKey(w) ||
           w == 'mil' ||
-          w == 'y'; // "treinta y cinco"
+          w == 'y';
 
       if (isNumWord) {
         startIdx ??= i;
         endIdx = i;
       } else if (startIdx != null) {
-        // Si encontramos "pesos"/"varos" justo después, incluirlo como fin
         if (w == 'pesos' || w == 'varos' || w == 'bolas') {
           endIdx = i;
         }
@@ -235,7 +191,6 @@ class NlpEntityExtractor {
 
     if (startIdx == null) return null;
 
-    // Componer el valor numérico
     final numWords = words
         .sublist(startIdx, (endIdx ?? startIdx) + 1)
         .where((w) => w != 'y' && w != 'pesos' && w != 'varos' && w != 'bolas')
@@ -248,15 +203,12 @@ class NlpEntityExtractor {
 
     for (final w in numWords) {
       if (w == 'mil') {
-        // "mil" multiplica lo acumulado o vale 1000 si es el primer token
         if (current == 0) current = 1;
         total += current * 1000;
         current = 0;
       } else {
         final val = units[w] ?? teens[w] ?? tens[w] ?? hundreds[w];
-        if (val != null) {
-          current += val;
-        }
+        if (val != null) current += val;
       }
     }
 

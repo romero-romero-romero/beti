@@ -11,6 +11,7 @@ dependencies:
     sdk: flutter
   flutter_local_notifications: ^18.0.1
   timezone: ^0.10.0
+  share_plus: ^10.0.0
 
   cupertino_icons: ^1.0.8
 
@@ -48,7 +49,6 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.3
-
 
   # ── Generación de código Isar ──
   isar_generator: ^3.1.0+1

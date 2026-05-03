@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beti_app/core/constants/app_colors.dart';
 import 'package:beti_app/core/utils/platform_helper.dart';
 import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:flutter/foundation.dart';
+import 'package:go_router/go_router.dart';
 
 /// Pantalla de Perfil con configuraciones.
 ///
@@ -245,7 +247,31 @@ class ProfileScreen extends ConsumerWidget {
                   child: const Text('Cerrar sesión'),
                 ),
               ),
+
               const SizedBox(height: 16),
+
+              if (kDebugMode) ...[
+                const SizedBox(height: 24),
+                _SectionHeader(title: 'Desarrollador', isDark: isDark),
+                const SizedBox(height: 8),
+                _SettingsCard(
+                  isDark: isDark,
+                  children: [
+                    _SettingsRow(
+                      icon: Icons.bug_report_outlined,
+                      title: 'OCR Evaluator',
+                      subtitle: 'Evaluar tickets en lote [DEV]',
+                      isDark: isDark,
+                      trailing: Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: isDark ? AppColors.grey : AppColors.lightGrey,
+                      ),
+                      onTap: () => context.goNamed('ocrEvaluator'),
+                    ),
+                  ],
+                ),
+              ],
 
               // ── Versión ──
               Center(
@@ -316,6 +342,7 @@ class _SettingsRow extends StatelessWidget {
   final bool isDark;
   final Widget? trailing;
   final Color? titleColor;
+  final VoidCallback? onTap; // ← agrega esto
 
   const _SettingsRow({
     required this.icon,
@@ -324,62 +351,66 @@ class _SettingsRow extends StatelessWidget {
     required this.isDark,
     this.trailing,
     this.titleColor,
+    this.onTap, // ← y esto
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: isDark
-                  ? AppColors.grey.withValues(alpha: 0.15)
-                  : AppColors.offWhite,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: titleColor ??
-                  (isDark
-                      ? AppColors.textSecondaryDark
-                      : AppColors.textSecondaryLight),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: titleColor ??
-                        (isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textPrimaryLight),
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? AppColors.grey.withValues(alpha: 0.15)
+                    : AppColors.offWhite,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: titleColor ??
+                    (isDark
                         ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-                  ),
-                ),
-              ],
+                        : AppColors.textSecondaryLight),
+              ),
             ),
-          ),
-          if (trailing != null) trailing!,
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: titleColor ??
+                          (isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight),
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (trailing != null) trailing!,
+          ],
+        ),
       ),
     );
   }

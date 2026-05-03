@@ -69,6 +69,32 @@
 -keep class androidx.lifecycle.** { *; }
 
 # ───────────────────────────────────────────────────────────
+# TensorFlow Lite (Fase 3 — Categorización de transacciones)
+#
+# tflite_flutter usa JNI para invocar la librería nativa
+# libtensorflowlite_jni.so. R8 NO debe ofuscar:
+#   - org.tensorflow.lite.* (API Java/Kotlin del intérprete)
+#   - tflite_flutter plugin Java side
+#
+# Sin estas reglas, el intérprete falla con UnsatisfiedLinkError
+# en runtime y la app cae al fallback de keywords silenciosamente.
+# ───────────────────────────────────────────────────────────
+-keep class org.tensorflow.lite.** { *; }
+-keep interface org.tensorflow.lite.** { *; }
+-dontwarn org.tensorflow.lite.**
+
+# Plugin Flutter side (com.tfliteflutter)
+-keep class com.tfliteflutter.** { *; }
+-dontwarn com.tfliteflutter.**
+
+# GPU/NNAPI delegates (opcionales pero defensivos —
+# por si alguien activa aceleración HW en el futuro)
+-keep class org.tensorflow.lite.gpu.** { *; }
+-keep class org.tensorflow.lite.nnapi.** { *; }
+-dontwarn org.tensorflow.lite.gpu.**
+-dontwarn org.tensorflow.lite.nnapi.**
+
+# ───────────────────────────────────────────────────────────
 # connectivity_plus
 # ───────────────────────────────────────────────────────────
 -keep class dev.fluttercommunity.plus.** { *; }
