@@ -20,22 +20,30 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _notesController = TextEditingController();
-  bool _initializedFromDraft = false;
+
+  // ── REEMPLAZA initState + didChangeDependencies + dispose ──
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Si venimos de voz u OCR, poblar los campos con el draft existente
-    if (!_initializedFromDraft) {
+  void initState() {
+    super.initState();
+    // Solo poblar los controllers si el draft viene de una captura
+    // (voz u OCR). El ingreso manual siempre arranca limpio.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final notifier = ref.read(transactionFormProvider.notifier);
       final draft = ref.read(transactionFormProvider);
-      if (draft.amount > 0) {
-        _amountController.text = draft.amount.toStringAsFixed(2);
+      if (notifier.isFromCapture) {
+        if (draft.amount > 0) {
+          // Mostrar enteros sin decimales ("2000" no "2000.00")
+          _amountController.text = draft.amount == draft.amount.truncateToDouble()
+              ? draft.amount.toInt().toString()
+              : draft.amount.toStringAsFixed(2);
+        }
+        if (draft.description.isNotEmpty) {
+          _descriptionController.text = draft.description;
+        }
       }
-      if (draft.description.isNotEmpty) {
-        _descriptionController.text = draft.description;
-      }
-      _initializedFromDraft = true;
-    }
+    });
   }
 
   @override

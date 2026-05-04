@@ -11,6 +11,7 @@ import 'package:beti_app/features/budgets_goals/data/models/budget_model.dart';
 import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
 import 'package:beti_app/features/sync/data/models/sync_queue_model.dart';
 import 'package:beti_app/features/budgets_goals/data/models/income_budget_model.dart';
+import 'package:beti_app/features/notifications/data/models/notification_preferences_model.dart';
 
 class IsarInstance {
   static Isar? _instance;
@@ -44,6 +45,7 @@ class IsarInstance {
         IncomeBudgetModelSchema,
         GoalModelSchema,
         SyncQueueModelSchema,
+        NotificationPreferencesModelSchema,
       ],
       directory: dir.path,
       name: 'beti_db',

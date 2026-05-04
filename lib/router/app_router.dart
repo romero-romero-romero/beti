@@ -14,6 +14,7 @@ import 'package:beti_app/features/budgets_goals/presentation/screens/add_goal_sc
 import 'package:beti_app/features/cards_credits/presentation/screens/credit_simulator_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:beti_app/features/diagnostics/presentation/screens/ocr_evaluator_screen.dart';
+import 'package:beti_app/features/notifications/presentation/screens/notification_settings_screen.dart';
 
 /// Provider de GoRouter que reacciona al estado de autenticación.
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -91,6 +92,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'addGoal',
         builder: (context, state) => const AddGoalScreen(),
       ),
+      GoRoute(
+        path: '/notification-settings',
+        name: 'notificationSettings',
+        builder: (context, state) => const NotificationSettingsScreen(),
+      ),
+
       // ── Dev tools (solo debug) ──
       if (kDebugMode)
         GoRoute(

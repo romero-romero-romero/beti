@@ -141,15 +141,26 @@ class TransactionDraft {
 /// Notifier para el formulario de transacción.
 /// Incluye la lógica de auto-categorización.
 class TransactionFormNotifier extends StateNotifier<TransactionDraft> {
+  // Dentro de TransactionFormNotifier, agrega este getter:
+
+  /// true cuando el draft acaba de ser reseteado externamente
+  /// (viene de voz/OCR o de un guardado previo).
+  /// AddTransactionScreen lo usa en initState para decidir si poblar campos.
+  bool get isFromCapture =>
+      state.inputMethod == InputMethod.voice ||
+      state.inputMethod == InputMethod.ocr;
   TransactionFormNotifier()
       : super(TransactionDraft(transactionDate: DateTime.now()));
 
   void updatePaymentMethod(PaymentMethod? method) =>
       state = state.copyWith(paymentMethod: method);
 
-  /// Resetea el formulario a valores por defecto.
+  // REEMPLAZA el método reset() actual:
   void reset() {
-    state = TransactionDraft(transactionDate: DateTime.now());
+    state = TransactionDraft(
+      transactionDate: DateTime.now(),
+      inputMethod: InputMethod.manual, // garantiza isFromCapture = false
+    );
   }
 
   /// Carga una transacción existente para editar.

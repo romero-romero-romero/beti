@@ -111,17 +111,42 @@ class NlpEntityExtractor {
   }
 
   static double? _extractNumericAmount(String text) {
+    // ── Pre-sanitización: unificar formatos de miles antes del regex ──
+    // El STT mexicano puede entregar:
+    //   "2 000"  (espacio como separador de miles — Android)
+    //   "2.000"  (punto europeo — algunos motores iOS en es-MX)
+    //   "2,000"  (coma anglosajona — reconocedor en inglés)
+    //   "2000"   (sin separador — ideal)
+    // Los primeros dos se normalizan aquí; el tercero ya lo maneja el regex.
+    String sanitized = text;
+
+    // "2.000" europeo → "2000" (solo si el punto separa exactamente 3 dígitos
+    // y NO hay decimales de 1-2 dígitos al final, para no confundir "2.50")
+    sanitized = sanitized.replaceAllMapped(
+      RegExp(r'(\d+)\.(\d{3})(?!\d)(?![.,]\d)'),
+      (m) => '${m.group(1)}${m.group(2)}',
+    );
+
+    // "2 000" (espacio como separador) → "2000"
+    // Solo cuando el bloque después del espacio tiene EXACTAMENTE 3 dígitos
+    // y va precedido de dígitos (evita colapsar "2 cosas")
+    sanitized = sanitized.replaceAllMapped(
+      RegExp(r'(\d+) (\d{3})(?!\d)'),
+      (m) => '${m.group(1)}${m.group(2)}',
+    );
+
     final patterns = [
-      // "$500" o "$ 2,000" con decimales opcionales
+      // 1. "$2000" / "$ 2,000.50" — signo peso + número
       RegExp(r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)'),
-      // "2000 pesos" / "15000 varos" — sin límite de dígitos
-      RegExp(r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:pesos|varos|bolas|mxn)'),
-      // Número suelto >= 2 dígitos, sin límite superior
-      RegExp(r'(?<!\d)(\d{2,}(?:,\d{3})*(?:\.\d{1,2})?)(?!\d)'),
+      // 2. "2000 pesos" / "15000 varos" / "2,000 mxn"
+      RegExp(
+          r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:pesos|varos|bolas|mxn)\b'),
+      // 3. Número suelto >= 2 dígitos (fallback)
+      RegExp(r'(?<![,.\d])(\d{2,}(?:,\d{3})*(?:\.\d{1,2})?)(?![,.\d])'),
     ];
 
     for (final regex in patterns) {
-      final match = regex.firstMatch(text);
+      final match = regex.firstMatch(sanitized);
       if (match != null) {
         final raw = match.group(1)?.replaceAll(',', '');
         if (raw != null) {
@@ -528,6 +553,8 @@ class NlpEntityExtractor {
         .replaceAll('ú', 'u')
         .replaceAll('ñ', 'n')
         .replaceAll('ü', 'u')
+        // Preservar $, punto decimal y coma de miles para el parser numérico.
+        // Eliminar el resto de puntuación no relevante.
         .replaceAll(RegExp(r'[^\w\s/\-\$.,]'), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();

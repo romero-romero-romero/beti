@@ -110,6 +110,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 32),
 
               // ── Sección Preferencias ──
+              // ── Sección Preferencias ──
               _SectionHeader(title: 'Preferencias', isDark: isDark),
               const SizedBox(height: 8),
               _SettingsCard(
@@ -126,9 +127,7 @@ class ProfileScreen extends ConsumerWidget {
                         ? CupertinoSwitch(
                             value: isDark,
                             activeTrackColor: AppColors.primary,
-                            onChanged: (_) {
-                              // TODO: Implementar toggle de tema
-                            },
+                            onChanged: (_) {},
                           )
                         : Switch(
                             value: isDark,
@@ -151,6 +150,7 @@ class ProfileScreen extends ConsumerWidget {
                       size: 18,
                       color: isDark ? AppColors.grey : AppColors.lightGrey,
                     ),
+                    onTap: () => context.goNamed('notificationSettings'),
                   ),
                   _SettingsDivider(isDark: isDark),
                   _SettingsRow(
@@ -342,8 +342,7 @@ class _SettingsRow extends StatelessWidget {
   final bool isDark;
   final Widget? trailing;
   final Color? titleColor;
-  final VoidCallback? onTap; // ← agrega esto
-
+  final VoidCallback? onTap; 
   const _SettingsRow({
     required this.icon,
     required this.title,

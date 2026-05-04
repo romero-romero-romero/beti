@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:beti_app/core/database/isar_instance.dart';
 import 'package:beti_app/app.dart';
 import 'package:beti_app/features/alerts/data/services/alert_scheduler.dart';
+import 'package:beti_app/core/services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +20,7 @@ void main() async {
   // 2. Inicializar Isar PRIMERO (fuente de verdad local, siempre funciona)
   await IsarInstance.initialize();
   await AlertScheduler.initialize();
+  await NotificationService.instance.initialize();
 
   // 3. Inicializar Supabase (puede fallar sin internet — la app sigue offline)
   final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
