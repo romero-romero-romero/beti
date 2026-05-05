@@ -82,28 +82,28 @@ PODS:
     - CwlCatchException
     - Flutter
     - FlutterMacOS
-  - TensorFlowLiteC (2.12.0):
-    - TensorFlowLiteC/Core (= 2.12.0)
-  - TensorFlowLiteC/Core (2.12.0)
-  - TensorFlowLiteC/CoreML (2.12.0):
+  - TensorFlowLiteC (2.14.0):
+    - TensorFlowLiteC/Core (= 2.14.0)
+  - TensorFlowLiteC/Core (2.14.0)
+  - TensorFlowLiteC/CoreML (2.14.0):
     - TensorFlowLiteC/Core
-  - TensorFlowLiteC/Metal (2.12.0):
+  - TensorFlowLiteC/Metal (2.14.0):
     - TensorFlowLiteC/Core
-  - TensorFlowLiteSwift (2.12.0):
-    - TensorFlowLiteSwift/Core (= 2.12.0)
-  - TensorFlowLiteSwift/Core (2.12.0):
-    - TensorFlowLiteC (= 2.12.0)
-  - TensorFlowLiteSwift/CoreML (2.12.0):
-    - TensorFlowLiteC/CoreML (= 2.12.0)
-    - TensorFlowLiteSwift/Core (= 2.12.0)
-  - TensorFlowLiteSwift/Metal (2.12.0):
-    - TensorFlowLiteC/Metal (= 2.12.0)
-    - TensorFlowLiteSwift/Core (= 2.12.0)
+  - TensorFlowLiteSwift (2.14.0):
+    - TensorFlowLiteSwift/Core (= 2.14.0)
+  - TensorFlowLiteSwift/Core (2.14.0):
+    - TensorFlowLiteC (= 2.14.0)
+  - TensorFlowLiteSwift/CoreML (2.14.0):
+    - TensorFlowLiteC/CoreML (= 2.14.0)
+    - TensorFlowLiteSwift/Core (= 2.14.0)
+  - TensorFlowLiteSwift/Metal (2.14.0):
+    - TensorFlowLiteC/Metal (= 2.14.0)
+    - TensorFlowLiteSwift/Core (= 2.14.0)
   - tflite_flutter (0.0.1):
     - Flutter
-    - TensorFlowLiteSwift (= 2.12.0)
-    - TensorFlowLiteSwift/CoreML (= 2.12.0)
-    - TensorFlowLiteSwift/Metal (= 2.12.0)
+    - TensorFlowLiteSwift (= 2.14.0)
+    - TensorFlowLiteSwift/CoreML (= 2.14.0)
+    - TensorFlowLiteSwift/Metal (= 2.14.0)
   - url_launcher_ios (0.0.1):
     - Flutter
 
@@ -199,9 +199,9 @@ SPEC CHECKSUMS:
   share_plus: 50da8cb520a8f0f65671c6c6a99b3617ed10a58a
   shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
   speech_to_text: 3b313d98516d3d0406cea424782ec25470c59d19
-  TensorFlowLiteC: 20785a69299185a379ba9852b6625f00afd7984a
-  TensorFlowLiteSwift: 3a4928286e9e35bdd3e17970f48e53c80d25e793
-  tflite_flutter: 64b192e11352fe36943ab6656e1d49207f1a5595
+  TensorFlowLiteC: a836de9b6e6018665ccc349538bdd2c3b80dd7a5
+  TensorFlowLiteSwift: f706b143b69d7bf433aba7b08049bdd11c321a10
+  tflite_flutter: 768864376ced7900132c1f5ddcdacaa256c6de0e
   url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
 
 PODFILE CHECKSUM: 2df83a4941e85ab6dc0a357b1e1982039c1a2653
