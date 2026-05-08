@@ -14,13 +14,15 @@ class NotificationIds {
   static const String channelReminderId = 'beti_daily_reminder';
 
   // ── IDs de notificación (únicos en toda la app) ──
-  // Rango 1000-1999: corte de tarjeta (1000 + índice de tarjeta)
-  // Rango 2000-2999: pago de tarjeta  (2000 + índice de tarjeta)
-  // 9000: reminder diario
+  // Rango 1000-1999: corte de tarjeta de crédito  (1000 + cardIndex)
+  // Rango 2000-2999: pago de tarjeta de crédito   (2000 + cardIndex)
+  // Rango 3000-3999: pago de crédito/préstamo     (3000 + creditIndex)
+  // 9000:           reminder diario
   static const int dailyReminderId = 9000;
 
   static int cutOffId(int cardIndex) => 1000 + cardIndex;
   static int paymentId(int cardIndex) => 2000 + cardIndex;
+  static int creditPaymentId(int creditIndex) => 3000 + creditIndex;
 }
 
 /// Servicio singleton de notificaciones locales.
@@ -33,11 +35,15 @@ class NotificationIds {
 /// Todas las operaciones son idempotentes: programar dos veces el mismo ID
 /// simplemente reemplaza la notificación anterior.
 class NotificationService {
-  NotificationService._();
+  NotificationService._() : _plugin = FlutterLocalNotificationsPlugin();
+
+  /// Constructor solo para testing — inyecta un plugin mockeado.
+  @visibleForTesting
+  NotificationService.testWithPlugin(this._plugin);
+
   static final NotificationService instance = NotificationService._();
 
-  final FlutterLocalNotificationsPlugin _plugin =
-      FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _plugin;
 
   bool _initialized = false;
 
@@ -183,6 +189,42 @@ class NotificationService {
   Future<void> cancelCardAlerts(int cardIndex) async {
     await _plugin.cancel(NotificationIds.cutOffId(cardIndex));
     await _plugin.cancel(NotificationIds.paymentId(cardIndex));
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // Alertas de crédito/préstamo — solo pago
+  // ════════════════════════════════════════════════════════════
+
+  /// Programa una alerta 3 días antes de la fecha de pago del crédito.
+  /// Si ya existía una alerta para este crédito, la reemplaza.
+  Future<void> scheduleCreditAlert({
+    required int creditIndex,
+    required String creditName,
+    required DateTime nextPaymentDate,
+    required double monthlyPayment,
+  }) async {
+    await cancelCreditAlert(creditIndex);
+
+    final paymentAlert = nextPaymentDate.subtract(const Duration(days: 3));
+    if (!paymentAlert.isAfter(DateTime.now())) return;
+
+    await _plugin.zonedSchedule(
+      NotificationIds.creditPaymentId(creditIndex),
+      'Pago próximo — $creditName',
+      'Tu pago de \$${monthlyPayment.toStringAsFixed(0)} '
+          'vence el ${_dayMonth(nextPaymentDate)}.',
+      _toTz(paymentAlert),
+      _notificationDetails(channelId: NotificationIds.channelAlertId),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
+    debugPrint('[Notifications] Alerta crédito $creditName → $paymentAlert');
+  }
+
+  /// Cancela la alerta de un crédito.
+  Future<void> cancelCreditAlert(int creditIndex) async {
+    await _plugin.cancel(NotificationIds.creditPaymentId(creditIndex));
   }
 
   /// Cancela absolutamente todas las notificaciones programadas.

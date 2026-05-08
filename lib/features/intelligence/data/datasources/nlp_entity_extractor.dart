@@ -137,7 +137,9 @@ class NlpEntityExtractor {
 
     final patterns = [
       // 1. "$2000" / "$ 2,000.50" — signo peso + número
-      RegExp(r'\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?)'),
+      // Acepta tanto formato sin separador (\$2000) como con coma anglosajona (\$2,000).
+      // Hist: originalmente usaba \d{1,3} lo que truncaba "$2000" a 200.
+      RegExp(r'\$\s*(\d+(?:,\d{3})*(?:\.\d{1,2})?)'),
       // 2. "2000 pesos" / "15000 varos" / "2,000 mxn"
       RegExp(
           r'(\d+(?:,\d{3})*(?:\.\d{1,2})?)\s*(?:pesos|varos|bolas|mxn)\b'),

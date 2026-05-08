@@ -15,6 +15,7 @@ import 'package:beti_app/features/transactions/presentation/providers/transactio
 import 'package:beti_app/features/financial_health/presentation/providers/health_provider.dart';
 import 'package:beti_app/features/budgets_goals/presentation/providers/budgets_goals_provider.dart';
 import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
+import 'dart:async';
 
 // ── Dependency Injection ──
 
@@ -64,6 +65,63 @@ enum SyncState {
   error,
 }
 
+/// Política de cooldown para sync automático.
+///
+/// Lógica pura, sin dependencias — testeable de forma aislada.
+///
+/// REGLAS:
+/// - El primer trigger después de instanciar (sin "última" registrada)
+///   SIEMPRE se permite.
+/// - Triggers subsiguientes se permiten solo si pasó el cooldown desde
+///   la última sync exitosa.
+@visibleForTesting
+class SyncCooldown {
+  /// Cooldown entre full syncs disparados por resumed/connectivity.
+  /// Bypasseado por: login (auth listener), initialPull, forceSync manual.
+  static const Duration fullSyncWindow = Duration(minutes: 2);
+
+  /// Ventana en la que ignoramos triggers duplicados de connectivity
+  /// (rebotes wifi↔celular, conexiones intermitentes).
+  static const Duration connectivityDebounce = Duration(seconds: 5);
+
+  DateTime? _lastFullSyncAt;
+  DateTime? _lastConnectivityTriggerAt;
+
+  /// Retorna true si un full sync triggered por resumed/connectivity
+  /// debe ejecutarse. Llamar `markFullSyncCompleted()` cuando termine.
+  bool shouldRunFullSync({DateTime? now}) {
+    if (_lastFullSyncAt == null) return true;
+    final t = now ?? DateTime.now();
+    return t.difference(_lastFullSyncAt!) >= fullSyncWindow;
+  }
+
+  /// Marcar que un full sync completó. Llamar al final de _triggerFullSync,
+  /// independientemente del éxito (para que un fallo no resetee el cooldown
+  /// y dispare reintentos en cascada).
+  void markFullSyncCompleted({DateTime? now}) {
+    _lastFullSyncAt = now ?? DateTime.now();
+  }
+
+  /// Retorna true si un trigger por connectivity debe procesarse.
+  /// Llamar `markConnectivityTriggered()` justo antes de procesar.
+  bool shouldHandleConnectivityChange({DateTime? now}) {
+    if (_lastConnectivityTriggerAt == null) return true;
+    final t = now ?? DateTime.now();
+    return t.difference(_lastConnectivityTriggerAt!) >= connectivityDebounce;
+  }
+
+  void markConnectivityTriggered({DateTime? now}) {
+    _lastConnectivityTriggerAt = now ?? DateTime.now();
+  }
+
+  /// Solo para tests: resetea estado.
+  @visibleForTesting
+  void reset() {
+    _lastFullSyncAt = null;
+    _lastConnectivityTriggerAt = null;
+  }
+}
+
 // ── Sync Notifier ──
 
 /// Orquesta la sincronización bidireccional:
@@ -83,6 +141,8 @@ class SyncNotifier extends StateNotifier<SyncState>
   final RealtimeService _realtimeService;
   final Ref _ref;
   bool _isSyncing = false;
+  final SyncCooldown _cooldown = SyncCooldown();
+  Timer? _pauseDebounceTimer;
 
   /// Key para SharedPreferences donde guardamos la última fecha de pull.
   static const _lastPullKey = 'betty_last_pull_at';
@@ -98,7 +158,15 @@ class SyncNotifier extends StateNotifier<SyncState>
 
     _ref.listen(connectivityProvider, (previous, next) {
       next.whenData((hasInternet) {
-        if (hasInternet) _triggerFullSync();
+        if (!hasInternet) return;
+        // Debounce: ignora rebotes de connectivity (wifi↔celular)
+        // dentro de 5s. La primera transición sí pasa.
+        if (!_cooldown.shouldHandleConnectivityChange()) {
+          debugPrint('[Sync] connectivity bounce ignored (within debounce)');
+          return;
+        }
+        _cooldown.markConnectivityTriggered();
+        _triggerFullSync();
       });
     });
 
@@ -120,12 +188,48 @@ class SyncNotifier extends StateNotifier<SyncState>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // Cancelar pushNow pendiente de un pause anterior — ahora que la app
+      // volvió, _triggerFullSync hará el push de todos modos.
+      _pauseDebounceTimer?.cancel();
+      _pauseDebounceTimer = null;
+
+      // Reabrir el websocket de Realtime si está cerrado.
+      // El delta pull en _triggerFullSync cubrirá cualquier cambio que
+      // haya ocurrido durante el tiempo offline.
+      _resumeRealtimeIfNeeded();
+
       _triggerFullSync();
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.hidden) {
-      pushNow();
+      // Debounce: iOS emite inactive → hidden → paused en sucesión rápida.
+      // Solo el último (después de 300ms de quietud) dispara pushNow
+      // y cierra Realtime para ahorrar batería del modem.
+      _pauseDebounceTimer?.cancel();
+      _pauseDebounceTimer = Timer(const Duration(milliseconds: 300), () {
+        pushNow();
+        _pauseRealtime();
+        _pauseDebounceTimer = null;
+      });
     }
+  }
+
+  /// Cierra el websocket de Realtime mientras la app está en background.
+  /// AHORRO: evita keep-alives TCP cada 30-60s que despiertan el modem.
+  void _pauseRealtime() {
+    if (!_realtimeService.isSubscribed) return;
+    _realtimeService.unsubscribe();
+    debugPrint('[Sync] Realtime paused (app went to background)');
+  }
+
+  /// Reabre el websocket si la app está autenticada y no estaba suscrita.
+  /// El delta pull subsiguiente cubrirá los cambios perdidos.
+  void _resumeRealtimeIfNeeded() {
+    if (_realtimeService.isSubscribed) return;
+    final userId = _userId;
+    if (userId == null) return;
+    _realtimeService.subscribe(userId, onDataChanged: _refreshUI);
+    debugPrint('[Sync] Realtime resumed (app foregrounded)');
   }
 
   /// Obtiene el userId del usuario autenticado.
@@ -140,6 +244,15 @@ class SyncNotifier extends StateNotifier<SyncState>
   /// antes de que el otro dispositivo haga su pull.
   Future<void> _triggerFullSync() async {
     if (_isSyncing) return;
+
+    // Cooldown: evitar full syncs back-to-back desde resumed/connectivity.
+    // Si pasó menos de 2 min desde la última sync, saltamos.
+    // (Esto NO afecta a initialPull, pushNow, ni forceSync — esos
+    // bypassan _triggerFullSync explícitamente.)
+    if (!_cooldown.shouldRunFullSync()) {
+      debugPrint('[Sync] fullSync skipped: within cooldown window');
+      return;
+    }
 
     final connectivity = _ref.read(hasInternetProvider);
     final hasInternet = connectivity.valueOrNull ?? false;
@@ -176,6 +289,10 @@ class SyncNotifier extends StateNotifier<SyncState>
       debugPrint('[Sync] fullSync ERROR: $e');
     } finally {
       _isSyncing = false;
+      // Marcar el cooldown incluso en caso de error: no queremos cascadas
+      // de reintentos ante un fallo persistente; el próximo trigger
+      // legítimo (resumed/connectivity) volverá a intentar tras 2 min.
+      _cooldown.markFullSyncCompleted();
       await Future.delayed(const Duration(seconds: 2));
       if (mounted) state = SyncState.idle;
     }
@@ -326,6 +443,7 @@ class SyncNotifier extends StateNotifier<SyncState>
 
   @override
   void dispose() {
+    _pauseDebounceTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _realtimeService.unsubscribe();
     super.dispose();

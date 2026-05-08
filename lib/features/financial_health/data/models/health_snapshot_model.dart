@@ -1,3 +1,5 @@
+
+
 import 'package:isar/isar.dart';
 
 part 'health_snapshot_model.g.dart';

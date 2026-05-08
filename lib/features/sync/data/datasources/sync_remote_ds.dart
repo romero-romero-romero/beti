@@ -118,4 +118,10 @@ class SyncRemoteDataSource {
     await _client.storage.from('ticket-images').upload(storagePath, file);
     return storagePath;
   }
+
+  /// Wrapper de testing — expone `_classifyHttpError` sin cambiar su visibilidad
+  /// real. NO usar fuera de tests.
+  @visibleForTesting
+  SyncExecutionResult classifyHttpErrorForTesting(String? code) =>
+      _classifyHttpError(code);
 }

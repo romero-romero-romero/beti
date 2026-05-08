@@ -277,7 +277,16 @@ class CardsScreen extends ConsumerWidget {
 // Credit Card Tile
 // ─────────────────────────────────────────────────────────
 
-class _CreditCardTile extends StatelessWidget {
+/// StatefulWidget para cachear el resultado de CreditSimulatorService.
+/// La simulación es costosa (itera mes-a-mes con interés compuesto) y
+/// los inputs (currentBalance, annualRate) son immutables dentro de un
+/// build cycle. Calcular en `initState` evita repetir la simulación en
+/// cada rebuild de la pantalla.
+///
+/// Si la tarjeta cambia (saldo se actualiza, tasa se modifica), el tile
+/// se reconstruye con nueva instancia y didUpdateWidget detecta el cambio
+/// y recalcula.
+class _CreditCardTile extends StatefulWidget {
   final CreditCardEntity card;
   final bool isDark;
   final VoidCallback onDelete;
@@ -291,7 +300,66 @@ class _CreditCardTile extends StatelessWidget {
   });
 
   @override
+  State<_CreditCardTile> createState() => _CreditCardTileState();
+}
+
+class _CreditCardTileState extends State<_CreditCardTile> {
+  /// Resultado cacheado de la simulación. Null si no aplica
+  /// (sin saldo, sin tasa, o tasa cero).
+  SimulationResult? _simulationResult;
+
+  /// Pago mínimo efectivo usado en la simulación.
+  /// Se cachea junto con el resultado para mostrar en UI sin recalcular.
+  double _effectiveMinPayment = 0;
+
+  /// Snapshot de los inputs usados en el último cálculo, para detectar
+  /// cambios en didUpdateWidget.
+  double? _cachedBalance;
+  double? _cachedRate;
+
+  @override
+  void initState() {
+    super.initState();
+    _recomputeSimulation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CreditCardTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Solo recalculamos si cambió el saldo o la tasa.
+    // Otros cambios (alertsEnabled, name, etc.) no afectan la simulación.
+    if (widget.card.currentBalance != _cachedBalance ||
+        widget.card.annualRate != _cachedRate) {
+      _recomputeSimulation();
+    }
+  }
+
+  void _recomputeSimulation() {
+    final card = widget.card;
+    _cachedBalance = card.currentBalance;
+    _cachedRate = card.annualRate;
+
+    if (card.currentBalance <= 0 ||
+        card.annualRate == null ||
+        card.annualRate! <= 0) {
+      _simulationResult = null;
+      _effectiveMinPayment = 0;
+      return;
+    }
+
+    final minPayment = card.currentBalance * 0.03;
+    _effectiveMinPayment = minPayment < 200 ? 200.0 : minPayment;
+    _simulationResult = CreditSimulatorService.simulate(
+      debt: card.currentBalance,
+      annualRate: card.annualRate!,
+      monthlyPayment: _effectiveMinPayment,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final card = widget.card;
+    final isDark = widget.isDark;
     final util = card.utilizationPercent;
     final utilColor = util <= 30
         ? AppColors.primary
@@ -330,7 +398,7 @@ class _CreditCardTile extends StatelessWidget {
           ),
         );
       },
-      onDismissed: (_) => onDelete(),
+      onDismissed: (_) => widget.onDelete(),
       child: Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 10),
@@ -470,91 +538,12 @@ class _CreditCardTile extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            // ── Análisis de pago mínimo ──
+            // ── Análisis de pago mínimo (usa simulación cacheada) ──
             if (card.currentBalance > 0 &&
                 card.annualRate != null &&
                 card.annualRate! > 0) ...[
               const SizedBox(height: 8),
-              Builder(builder: (_) {
-                final minPayment = card.currentBalance * 0.03;
-                final effectiveMin = minPayment < 200 ? 200.0 : minPayment;
-                final result = CreditSimulatorService.simulate(
-                  debt: card.currentBalance,
-                  annualRate: card.annualRate!,
-                  monthlyPayment: effectiveMin,
-                );
-                if (result == null) {
-                  return Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.warning_amber_rounded,
-                            size: 16, color: Colors.red),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'El pago mínimo no cubre los intereses. Considera refinanciar.',
-                            style: TextStyle(
-                                fontSize: 11, color: Colors.red.shade700),
-                          ),
-                        ),
-                        const TermInfoIcon(
-                            termKey: 'minimum_payment', size: 14),
-                      ],
-                    ),
-                  );
-                }
-                final color = result.months > 120
-                    ? Colors.red
-                    : result.months > 36
-                        ? Colors.amber.shade700
-                        : AppColors.primary;
-                return Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            result.months > 36
-                                ? Icons.warning_amber_rounded
-                                : Icons.info_outline,
-                            size: 14,
-                            color: color,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Si pagas solo el mínimo (${CurrencyFormatter.format(effectiveMin)}):',
-                            style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: color),
-                          ),
-                          const Spacer(),
-                          const TermInfoIcon(
-                              termKey: 'minimum_payment', size: 14),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Tardarías ${result.timeLabel} · Pagarías ${CurrencyFormatter.format(result.totalInterest)} en intereses',
-                        style: const TextStyle(fontSize: 11),
-                      ),
-                    ],
-                  ),
-                );
-              }),
+              _buildMinPaymentAnalysis(),
             ],
 
             // ── Toggle de alertas ──
@@ -586,20 +575,97 @@ class _CreditCardTile extends StatelessWidget {
                       ? CupertinoSwitch(
                           value: card.alertsEnabled,
                           activeTrackColor: AppColors.primary,
-                          onChanged: (_) => onToggleAlerts(),
+                          onChanged: (_) => widget.onToggleAlerts(),
                         )
                       : Switch(
                           value: card.alertsEnabled,
                           activeColor: AppColors.primary,
                           materialTapTargetSize:
                               MaterialTapTargetSize.shrinkWrap,
-                          onChanged: (_) => onToggleAlerts(),
+                          onChanged: (_) => widget.onToggleAlerts(),
                         ),
                 ),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Render del bloque de análisis de pago mínimo.
+  /// Usa el resultado cacheado en `_simulationResult` — NO recalcula
+  /// `CreditSimulatorService.simulate()` en cada rebuild.
+  Widget _buildMinPaymentAnalysis() {
+    // Caso 1: el pago mínimo no cubre intereses (deuda crece infinitamente).
+    if (_simulationResult == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded,
+                size: 16, color: Colors.red),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'El pago mínimo no cubre los intereses. Considera refinanciar.',
+                style: TextStyle(fontSize: 11, color: Colors.red.shade700),
+              ),
+            ),
+            const TermInfoIcon(termKey: 'minimum_payment', size: 14),
+          ],
+        ),
+      );
+    }
+
+    // Caso 2: simulación válida.
+    final result = _simulationResult!;
+    final color = result.months > 120
+        ? Colors.red
+        : result.months > 36
+            ? Colors.amber.shade700
+            : AppColors.primary;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                result.months > 36
+                    ? Icons.warning_amber_rounded
+                    : Icons.info_outline,
+                size: 14,
+                color: color,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Si pagas solo el mínimo (${CurrencyFormatter.format(_effectiveMinPayment)}):',
+                style: TextStyle(
+                    fontSize: 11, fontWeight: FontWeight.w600, color: color),
+              ),
+              const Spacer(),
+              const TermInfoIcon(termKey: 'minimum_payment', size: 14),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Tardarías ${result.timeLabel} · Pagarías ${CurrencyFormatter.format(result.totalInterest)} en intereses',
+            style: const TextStyle(fontSize: 11),
+          ),
+        ],
       ),
     );
   }

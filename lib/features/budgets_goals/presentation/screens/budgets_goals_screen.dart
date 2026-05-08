@@ -588,7 +588,12 @@ class _GoalsContent extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
-              ...goals.map((g) => _GoalTile(goal: g, isDark: isDark, ref: ref)),
+              ...goals.map((g) => _GoalTile(
+                    goal: g,
+                    isDark: isDark,
+                    onDelete: () =>
+                        ref.read(goalsProvider.notifier).deleteGoal(g.uuid),
+                  )),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -653,10 +658,13 @@ class _EmptyGoals extends StatelessWidget {
 class _GoalTile extends StatelessWidget {
   final GoalEntity goal;
   final bool isDark;
-  final WidgetRef ref;
+  final VoidCallback onDelete;
 
-  const _GoalTile(
-      {required this.goal, required this.isDark, required this.ref});
+  const _GoalTile({
+    required this.goal,
+    required this.isDark,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -713,8 +721,7 @@ class _GoalTile extends StatelessWidget {
                         color: color)),
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () =>
-                      ref.read(goalsProvider.notifier).deleteGoal(goal.uuid),
+                  onTap: onDelete,
                   child: Icon(Icons.close,
                       size: 16,
                       color: isDark ? AppColors.grey : Colors.grey.shade400),

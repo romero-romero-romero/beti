@@ -5,9 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:beti_app/features/cards_credits/presentation/providers/cards_credits_provider.dart';
 import 'package:beti_app/features/financial_education/presentation/widgets/term_info_icon.dart';
 import 'package:beti_app/features/cards_credits/data/credit_card_catalog.dart';
-import 'package:beti_app/features/alerts/data/services/alert_scheduler.dart';
-import 'package:beti_app/core/providers/core_providers.dart';
-import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
 
 class AddCardScreen extends ConsumerStatefulWidget {
   const AddCardScreen({super.key});
@@ -61,13 +58,6 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
               ? double.parse(_rateCtrl.text.trim()) / 100
               : null,
         );
-
-    // Re-programar todas las alertas de tarjeta tras guardar
-    final authState = ref.read(authProvider);
-    if (authState is AuthAuthenticated) {
-      final isar = ref.read(isarProvider);
-      await AlertScheduler.rescheduleAll(isar, authState.user.supabaseId);
-    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

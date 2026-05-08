@@ -7,6 +7,7 @@ import 'package:beti_app/core/constants/app_colors.dart';
 import 'package:beti_app/core/utils/currency_formatter.dart';
 import 'package:beti_app/core/utils/platform_helper.dart';
 import 'package:beti_app/features/financial_health/presentation/providers/health_provider.dart';
+import 'package:beti_app/features/transactions/domain/entities/transaction_entity.dart';
 import 'package:beti_app/features/transactions/presentation/providers/transactions_provider.dart';
 import 'package:beti_app/features/transactions/presentation/widgets/transaction_tile.dart';
 import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
@@ -24,7 +25,15 @@ class HealthDashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final healthAsync = ref.watch(healthProvider);
-    final txAsync = ref.watch(transactionsProvider);
+
+    // Solo observamos las 4 transacciones más recientes (las que se renderizan).
+    // Cambios en transacciones más antiguas NO disparan rebuild del dashboard.
+    final recentTxAsync = ref.watch(
+      transactionsProvider.select(
+        (asyncList) => asyncList.whenData((list) => list.take(4).toList()),
+      ),
+    );
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -83,7 +92,8 @@ class HealthDashboardScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // ── Últimos movimientos ──
-                _buildRecentTransactions(context, ref, txAsync, theme, isDark),
+                _buildRecentTransactions(
+                    context, ref, recentTxAsync, theme, isDark),
               ],
             ),
           ),
@@ -96,22 +106,20 @@ class HealthDashboardScreen extends ConsumerWidget {
     final now = DateTime.now();
     final dateStr = DateFormat('EEEE, d MMM', 'es_MX').format(now);
 
-    // Extraer nombre real del usuario autenticado
-    final authState = ref.watch(authProvider);
-    String userName = 'Usuario';
-    if (authState is AuthAuthenticated) {
-      final display = authState.user.displayName;
-      if (display != null && display.trim().isNotEmpty) {
-        // Usar solo el primer nombre para el saludo
-        userName = display.trim().split(' ').first;
-      } else {
-        // Fallback: parte local del email antes del @
-        final email = authState.user.email;
-        if (email.contains('@')) {
-          userName = email.split('@').first;
+    // Extraer nombre real del usuario autenticado.
+    // Usamos .select() para que el saludo NO rebuild si cambia algo del user
+    // que no afecte el nombre (avatar, lastAuthAt, etc.).
+    final userName = ref.watch(
+      authProvider.select((state) {
+        if (state is! AuthAuthenticated) return 'Usuario';
+        final display = state.user.displayName;
+        if (display != null && display.trim().isNotEmpty) {
+          return display.trim().split(' ').first;
         }
-      }
-    }
+        final email = state.user.email;
+        return email.contains('@') ? email.split('@').first : 'Usuario';
+      }),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -120,7 +128,9 @@ class HealthDashboardScreen extends ConsumerWidget {
           dateStr,
           style: TextStyle(
             fontSize: 12,
-            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight,
           ),
         ),
         const SizedBox(height: 4),
@@ -131,7 +141,9 @@ class HealthDashboardScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
               ),
             ),
             const Text('👋', style: TextStyle(fontSize: 20)),
@@ -144,7 +156,7 @@ class HealthDashboardScreen extends ConsumerWidget {
   Widget _buildRecentTransactions(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<dynamic> txAsync,
+    AsyncValue<List<TransactionEntity>> recentTxAsync,
     ThemeData theme,
     bool isDark,
   ) {
@@ -156,7 +168,9 @@ class HealthDashboardScreen extends ConsumerWidget {
               'Últimos movimientos',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
               ),
             ),
             const Spacer(),
@@ -168,7 +182,9 @@ class HealthDashboardScreen extends ConsumerWidget {
                     'Ver todos',
                     style: TextStyle(
                       fontSize: 12,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
                     ),
                   ),
                   Icon(
@@ -176,7 +192,9 @@ class HealthDashboardScreen extends ConsumerWidget {
                         ? CupertinoIcons.chevron_right
                         : Icons.chevron_right,
                     size: 14,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   ),
                 ],
               ),
@@ -184,8 +202,7 @@ class HealthDashboardScreen extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
-
-        txAsync.when(
+        recentTxAsync.when(
           loading: () => const Center(
             child: Padding(
               padding: EdgeInsets.all(24),
@@ -193,12 +210,12 @@ class HealthDashboardScreen extends ConsumerWidget {
             ),
           ),
           error: (e, _) => Text('Error: $e'),
-          data: (transactions) {
-            if (transactions.isEmpty) {
+          data: (recent) {
+            // `recent` ya viene capeado a 4 por el .select() del provider.
+            if (recent.isEmpty) {
               return _EmptyState(isDark: isDark);
             }
 
-            final recent = transactions.take(4).toList();
             return Container(
               decoration: BoxDecoration(
                 color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -209,10 +226,6 @@ class HealthDashboardScreen extends ConsumerWidget {
                   for (int i = 0; i < recent.length; i++) ...[
                     TransactionTile(
                       transaction: recent[i],
-                      onDelete: () {
-                        ref.read(transactionsProvider.notifier).delete(recent[i].uuid);
-                        ref.invalidate(healthProvider);
-                      },
                     ),
                     if (i < recent.length - 1)
                       Divider(
@@ -321,7 +334,8 @@ class _BalanceCard extends StatelessWidget {
                       Row(
                         children: [
                           Icon(Icons.arrow_downward_rounded,
-                              size: 12, color: AppColors.income.withValues(alpha: 0.9)),
+                              size: 12,
+                              color: AppColors.income.withValues(alpha: 0.9)),
                           const SizedBox(width: 4),
                           Text(
                             'Ingresos',
@@ -359,7 +373,8 @@ class _BalanceCard extends StatelessWidget {
                       Row(
                         children: [
                           Icon(Icons.arrow_upward_rounded,
-                              size: 12, color: AppColors.expense.withValues(alpha: 0.9)),
+                              size: 12,
+                              color: AppColors.expense.withValues(alpha: 0.9)),
                           const SizedBox(width: 4),
                           Text(
                             'Gastos',
@@ -434,7 +449,9 @@ class _HealthSection extends StatelessWidget {
                     'Salud financiera',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
                     ),
                   ),
                   Text(
@@ -488,7 +505,9 @@ class _HealthSection extends StatelessWidget {
             message,
             style: TextStyle(
               fontSize: 11,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
           ),
         ],
@@ -582,7 +601,9 @@ class _EmptyState extends StatelessWidget {
             Text(
               'Sin movimientos aún',
               style: TextStyle(
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
                 fontSize: 14,
               ),
             ),

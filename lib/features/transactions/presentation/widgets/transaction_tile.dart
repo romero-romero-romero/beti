@@ -14,13 +14,11 @@ import 'package:beti_app/core/enums/payment_method.dart';
 /// - Monto con color
 class TransactionTile extends StatelessWidget {
   final TransactionEntity transaction;
-  final VoidCallback? onDelete;
   final VoidCallback? onTap;
 
   const TransactionTile({
     super.key,
     required this.transaction,
-    this.onDelete,
     this.onTap,
   });
 

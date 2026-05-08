@@ -8,6 +8,7 @@ import 'package:beti_app/features/cards_credits/data/models/credit_model.dart';
 import 'package:beti_app/features/budgets_goals/data/models/goal_model.dart';
 import 'package:beti_app/features/financial_health/data/models/health_snapshot_model.dart';
 import 'package:beti_app/core/utils/uuid_generator.dart';
+import 'package:flutter/foundation.dart';
 
 /// Resultado del cálculo de salud financiera.
 class HealthResult {
@@ -271,4 +272,32 @@ class HealthEngine {
         'Necesitas actuar. Tus gastos superan tus ingresos. 🚨',
     };
   }
+
+  // ══════════════════════════════════════════════════════════
+  // Wrappers @visibleForTesting — exponen la matemática pura del
+  // score sin necesidad de hidratar Isar con fixtures.
+  // ══════════════════════════════════════════════════════════
+
+  @visibleForTesting
+  double calculateScoreForTesting({
+    required double ratio,
+    required double totalDebt,
+    required double totalIncome,
+    required double totalExpenses,
+    required double creditUtil,
+    required int overduePayments,
+    required double goalProgress,
+  }) =>
+      _calculateScore(
+        ratio: ratio,
+        totalDebt: totalDebt,
+        totalIncome: totalIncome,
+        totalExpenses: totalExpenses,
+        creditUtil: creditUtil,
+        overduePayments: overduePayments,
+        goalProgress: goalProgress,
+      );
+
+  @visibleForTesting
+  HealthLevel scoreToLevelForTesting(double score) => _scoreToLevel(score);
 }
