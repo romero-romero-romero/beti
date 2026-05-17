@@ -90,7 +90,7 @@ class _MainShellState extends ConsumerState<MainShell> {
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.flag),
             activeIcon: Icon(CupertinoIcons.flag_fill),
-            label: 'Metas',
+            label: 'Presupuestos',
           ),
           BottomNavigationBarItem(
             icon: Icon(CupertinoIcons.person),
@@ -133,7 +133,7 @@ class _MainShellState extends ConsumerState<MainShell> {
           NavigationDestination(
             icon: Icon(Icons.flag_outlined),
             selectedIcon: Icon(Icons.flag),
-            label: 'Metas',
+            label: 'Presupuestos',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

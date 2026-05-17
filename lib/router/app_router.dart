@@ -5,8 +5,8 @@ import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart
 import 'package:beti_app/features/auth/presentation/screens/login_screen.dart';
 import 'package:beti_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:beti_app/features/transactions/presentation/screens/add_transaction_screen.dart';
-import 'package:beti_app/features/transactions/presentation/screens/preview_correction_screen.dart';
-import 'package:beti_app/features/input_capture/presentation/screens/voice_capture_screen.dart';
+import 'package:beti_app/features/auth/presentation/screens/update_password_screen.dart';
+import 'package:beti_app/features/transactions/presentation/screens/preview_correction_screen.dart';import 'package:beti_app/features/input_capture/presentation/screens/voice_capture_screen.dart';
 import 'package:beti_app/features/input_capture/presentation/screens/ocr_capture_screen.dart';
 import 'package:beti_app/features/cards_credits/presentation/screens/add_card_screen.dart';
 import 'package:beti_app/features/budgets_goals/presentation/screens/add_budget_screen.dart';
@@ -23,6 +23,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
+      // Modo recuperación de contraseña: tiene prioridad sobre cualquier
+      // otra navegación. El usuario llegó vía deep link y debe cambiar su
+      // contraseña antes de hacer cualquier otra cosa.
+      if (authState is AuthPasswordRecovery) {
+        return state.matchedLocation == '/update-password'
+            ? null
+            : '/update-password';
+      }
+
       final isAuthenticated = authState is AuthAuthenticated;
       final isAuthRoute = state.matchedLocation == '/login' ||
           state.matchedLocation == '/register';
@@ -43,7 +52,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
-
+      GoRoute(
+        path: '/update-password',
+        name: 'updatePassword',
+        builder: (context, state) => const UpdatePasswordScreen(),
+      ),
       // ── App principal (con bottom nav) ──
       GoRoute(
         path: '/home',

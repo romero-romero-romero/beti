@@ -100,11 +100,6 @@ class CategorizationEngine {
     if (fromHistory != null) return fromHistory;
 
     // ── Nivel 1: Modelo TFLite (si está cargado y confiado) ──
-    // Pasamos la descripción ORIGINAL al servicio TFLite, no la normalizada,
-    // porque el TextPreprocessor del servicio aplica su propia normalización
-    // que es espejo del pipeline de entrenamiento Python. Pasar texto ya
-    // normalizado por _normalize() de aquí podría introducir doble-normalización
-    // o divergencias sutiles si en el futuro se cambia uno y no el otro.
     final fromTflite = _predictFromTflite(description);
     if (fromTflite != null) return fromTflite;
 
@@ -134,9 +129,6 @@ class CategorizationEngine {
       if (!prediction.isReliable) return null;
       return prediction.category;
     } catch (_) {
-      // Fail-soft: cualquier error del modelo cae al siguiente nivel.
-      // No logueamos aquí para no inundar la consola en cada categorización.
-      // La telemetría (Sub-fase 3.4) llevará el conteo de fallos.
       return null;
     }
   }

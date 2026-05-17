@@ -17,7 +17,7 @@ class NotificationSettingsScreen extends ConsumerWidget {
         centerTitle: true,
       ),
       body: prefsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SizedBox.shrink(),
         error: (e, _) => Center(child: Text('Error: $e')),
         data: (prefs) => ListView(
           padding: const EdgeInsets.symmetric(vertical: 8),

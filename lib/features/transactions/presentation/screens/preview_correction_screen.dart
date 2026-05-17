@@ -29,10 +29,7 @@ class _PreviewCorrectionScreenState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final draft = ref.read(transactionFormProvider);
-      _originalCategory = draft.category;
-    });
+    _originalCategory = ref.read(transactionFormProvider).autoSuggestedCategory;
   }
 
   Future<void> _confirm() async {

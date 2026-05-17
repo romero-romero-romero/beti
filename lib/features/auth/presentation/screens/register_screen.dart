@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:beti_app/core/constants/app_strings.dart';
+import 'package:beti_app/core/widgets/password_requirements_list.dart';
 import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:beti_app/features/sync/presentation/providers/sync_provider.dart';
 
@@ -13,6 +14,18 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  // Blacklist de contraseñas triviales (insensible a mayúsculas).
+  static const _commonPasswords = {
+    '12345678',
+    'password',
+    'password1',
+    'qwerty',
+    'qwerty123',
+    'abc12345',
+    '11111111',
+    'contrasena',
+  };
+
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -22,8 +35,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
 
+  // Estado en vivo de las reglas de contraseña.
+  bool _ruleMinLength = false;
+  bool _ruleHasLetter = false;
+  bool _ruleHasDigit = false;
+  bool _ruleNotCommon = false;
+
+  bool get _passwordIsValid =>
+      _ruleMinLength && _ruleHasLetter && _ruleHasDigit && _ruleNotCommon;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_evaluatePassword);
+  }
+
+  void _evaluatePassword() {
+    final value = _passwordController.text;
+    setState(() {
+      _ruleMinLength = value.length >= 8;
+      _ruleHasLetter = RegExp(r'[A-Za-zÀ-ÿ]').hasMatch(value);
+      _ruleHasDigit = RegExp(r'\d').hasMatch(value);
+      _ruleNotCommon =
+          value.isNotEmpty && !_commonPasswords.contains(value.toLowerCase());
+    });
+  }
+
   @override
   void dispose() {
+    _passwordController.removeListener(_evaluatePassword);
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -47,9 +87,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     await ref.read(authProvider.notifier).signUp(
           email: _emailController.text.trim(),
           password: _passwordController.text,
-          fullName: _nameController.text.trim().isNotEmpty
-              ? _nameController.text.trim()
-              : null,
+          fullName: _nameController.text.trim(),
         );
   }
 
@@ -121,11 +159,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   TextFormField(
                     controller: _nameController,
                     keyboardType: TextInputType.name,
+                    textCapitalization: TextCapitalization.words,
                     enabled: !isLoading,
                     decoration: const InputDecoration(
-                      labelText: '${AppStrings.fullName} (opcional)',
+                      labelText: AppStrings.fullName,
                       prefixIcon: Icon(Icons.person_outline),
                     ),
+                    validator: (value) {
+                      final trimmed = value?.trim() ?? '';
+                      if (trimmed.isEmpty) {
+                        return 'Ingresa tu nombre';
+                      }
+                      if (trimmed.length < 2) {
+                        return 'El nombre es muy corto';
+                      }
+                      return null;
+                    },
                   ),
                   SizedBox(height: size.height * 0.015),
 
@@ -171,9 +220,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       if (value == null || value.isEmpty) {
                         return 'Ingresa tu contraseña';
                       }
-                      if (value.length < 6) return 'Mínimo 6 caracteres';
+                      if (!_passwordIsValid) {
+                        return 'La contraseña no cumple los requisitos';
+                      }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: 8),
+                  PasswordRequirementsList(
+                    minLength: _ruleMinLength,
+                    hasLetter: _ruleHasLetter,
+                    hasDigit: _ruleHasDigit,
+                    notCommon: _ruleNotCommon,
+                    showAll: _passwordController.text.isNotEmpty,
                   ),
                   SizedBox(height: size.height * 0.015),
 
