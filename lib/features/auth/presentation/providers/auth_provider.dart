@@ -57,6 +57,10 @@ class AuthUnauthenticated extends AuthState {
   const AuthUnauthenticated();
 }
 
+class AuthPasswordRecovery extends AuthState {
+  const AuthPasswordRecovery();
+}
+
 class AuthError extends AuthState {
   final String message;
   const AuthError(this.message);
@@ -75,6 +79,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     // del browser y el usuario debe reiniciar la app para ver la sesión.
     _authSub = sb.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       final event = data.event;
+      if (event == sb.AuthChangeEvent.passwordRecovery) {
+        // El usuario llegó vía deep link del email de reset. NO disparamos
+        // checkAuthStatus aquí: la sesión está "a medias" y el router debe
+        // forzar la pantalla de update-password antes de cualquier otra cosa.
+        state = const AuthPasswordRecovery();
+        return;
+      }
       if (event == sb.AuthChangeEvent.signedIn ||
           event == sb.AuthChangeEvent.tokenRefreshed) {
         checkAuthStatus();

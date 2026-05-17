@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beti_app/core/constants/app_colors.dart';
 import 'package:beti_app/core/utils/platform_helper.dart';
+import 'package:beti_app/core/providers/theme_provider.dart';
 import 'package:beti_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
+import 'package:beti_app/features/profile/presentation/providers/data_export_provider.dart';
 
 /// Pantalla de Perfil con configuraciones.
 ///
@@ -116,25 +118,25 @@ class ProfileScreen extends ConsumerWidget {
               _SettingsCard(
                 isDark: isDark,
                 children: [
-                  _SettingsRow(
-                    icon: PlatformHelper.isApple
-                        ? CupertinoIcons.moon
-                        : Icons.dark_mode_outlined,
-                    title: 'Modo oscuro',
-                    subtitle: 'Seguir sistema',
-                    isDark: isDark,
-                    trailing: PlatformHelper.isApple
-                        ? CupertinoSwitch(
-                            value: isDark,
-                            activeTrackColor: AppColors.primary,
-                            onChanged: (_) {},
-                          )
-                        : Switch(
-                            value: isDark,
-                            activeColor: AppColors.primary,
-                            onChanged: (_) {},
-                          ),
-                  ),
+                  Builder(builder: (rowContext) {
+                    final themeMode = ref.watch(themeModeProvider);
+                    return _SettingsRow(
+                      icon: PlatformHelper.isApple
+                          ? CupertinoIcons.moon
+                          : Icons.dark_mode_outlined,
+                      title: 'Tema',
+                      subtitle: _themeModeLabel(themeMode),
+                      isDark: isDark,
+                      trailing: Icon(
+                        PlatformHelper.isApple
+                            ? CupertinoIcons.chevron_right
+                            : Icons.chevron_right,
+                        size: 18,
+                        color: isDark ? AppColors.grey : AppColors.lightGrey,
+                      ),
+                      onTap: () => _showThemePicker(rowContext, ref, themeMode),
+                    );
+                  }),
                   _SettingsDivider(isDark: isDark),
                   _SettingsRow(
                     icon: PlatformHelper.isApple
@@ -150,7 +152,7 @@ class ProfileScreen extends ConsumerWidget {
                       size: 18,
                       color: isDark ? AppColors.grey : AppColors.lightGrey,
                     ),
-                    onTap: () => context.goNamed('notificationSettings'),
+                    onTap: () => context.pushNamed('notificationSettings'),
                   ),
                   _SettingsDivider(isDark: isDark),
                   _SettingsRow(
@@ -183,7 +185,7 @@ class ProfileScreen extends ConsumerWidget {
                         ? CupertinoIcons.cloud_download
                         : Icons.cloud_download_outlined,
                     title: 'Exportar datos',
-                    subtitle: 'JSON o CSV',
+                    subtitle: 'Genera un CSV de tus transacciones',
                     isDark: isDark,
                     trailing: Icon(
                       PlatformHelper.isApple
@@ -192,17 +194,11 @@ class ProfileScreen extends ConsumerWidget {
                       size: 18,
                       color: isDark ? AppColors.grey : AppColors.lightGrey,
                     ),
+                    onTap: () => _exportData(context, ref),
                   ),
-                  _SettingsDivider(isDark: isDark),
-                  _SettingsRow(
-                    icon: PlatformHelper.isApple
-                        ? CupertinoIcons.trash
-                        : Icons.delete_outline,
-                    title: 'Borrar todos los datos',
-                    subtitle: 'Esta acción no se puede deshacer',
-                    isDark: isDark,
-                    titleColor: AppColors.expense,
-                  ),
+                  // "Borrar todos los datos" — pendiente diseño de UX
+                  // (confirmación doble, manejo de sesión, sync remoto).
+                  // Se reintroduce en una iteración futura.
                 ],
               ),
               const SizedBox(height: 24),
@@ -341,7 +337,6 @@ class _SettingsRow extends StatelessWidget {
   final String subtitle;
   final bool isDark;
   final Widget? trailing;
-  final Color? titleColor;
   final VoidCallback? onTap; 
   const _SettingsRow({
     required this.icon,
@@ -349,7 +344,6 @@ class _SettingsRow extends StatelessWidget {
     required this.subtitle,
     required this.isDark,
     this.trailing,
-    this.titleColor,
     this.onTap, // ← y esto
   });
 
@@ -373,10 +367,9 @@ class _SettingsRow extends StatelessWidget {
               child: Icon(
                 icon,
                 size: 18,
-                color: titleColor ??
-                    (isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight),
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
               ),
             ),
             const SizedBox(width: 12),
@@ -389,10 +382,6 @@ class _SettingsRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: titleColor ??
-                          (isDark
-                              ? AppColors.textPrimaryDark
-                              : AppColors.textPrimaryLight),
                     ),
                   ),
                   Text(
@@ -428,6 +417,85 @@ class _SettingsDivider extends StatelessWidget {
       color: isDark
           ? AppColors.grey.withValues(alpha: 0.15)
           : AppColors.lightGrey.withValues(alpha: 0.3),
+    );
+  }
+}
+
+String _themeModeLabel(ThemeMode mode) {
+  switch (mode) {
+    case ThemeMode.system:
+      return 'Sistema';
+    case ThemeMode.light:
+      return 'Claro';
+    case ThemeMode.dark:
+      return 'Oscuro';
+  }
+}
+
+Future<void> _showThemePicker(
+  BuildContext context,
+  WidgetRef ref,
+  ThemeMode current,
+) async {
+  final selected = await showModalBottomSheet<ThemeMode>(
+    context: context,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Tema',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ),
+            for (final mode in ThemeMode.values)
+              RadioListTile<ThemeMode>(
+                title: Text(_themeModeLabel(mode)),
+                value: mode,
+                groupValue: current,
+                onChanged: (val) => Navigator.of(sheetContext).pop(val),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    },
+  );
+
+  // Si el sheet se cerró sin selección (tap fuera, swipe), no hacemos nada.
+  if (selected == null || selected == current) return;
+
+  // Aplicar cambio. ref sigue siendo válido aquí porque el sheet bloquea
+  // navegación mientras está abierto.
+  await ref.read(themeModeProvider.notifier).setThemeMode(selected);
+}
+
+Future<void> _exportData(BuildContext context, WidgetRef ref) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final service = ref.read(dataExportServiceProvider);
+
+  if (service == null) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Necesitas iniciar sesión para exportar.'),
+      ),
+    );
+    return;
+  }
+
+  try {
+    await service.exportTransactionsAsCsv();
+    // No mostramos SnackBar de éxito: el share sheet del sistema ya es
+    // confirmación suficiente. Si el usuario cancela, no hay "fallo".
+  } catch (e) {
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text('No se pudo exportar: $e'),
+        backgroundColor: Colors.red,
+      ),
     );
   }
 }

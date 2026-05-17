@@ -73,7 +73,7 @@ class CategoryLearningService {
   /// Persiste keywords aprendidas en CategoryModel.
   /// Si ya existe un CategoryModel para esta categoría del usuario,
   /// agrega las keywords nuevas. Si no, crea uno nuevo.
-  Future<void> _persistLearnedKeywords({
+ Future<void> _persistLearnedKeywords({
     required List<String> keywords,
     required CategoryType category,
   }) async {

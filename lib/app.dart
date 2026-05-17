@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beti_app/core/constants/app_strings.dart';
+import 'package:beti_app/core/providers/theme_provider.dart';
 import 'package:beti_app/core/theme/app_theme.dart';
 import 'package:beti_app/core/utils/platform_helper.dart';
 import 'package:beti_app/router/app_router.dart';
@@ -42,6 +43,7 @@ class _BetiAppState extends ConsumerState<BetiApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
+    final themeMode = ref.watch(themeModeProvider);
 
     // Escuchar cambios de auth para disparar sync en cualquier transición
     // a AuthAuthenticated (login fresco O restauración de sesión desde Isar).
@@ -74,7 +76,7 @@ class _BetiAppState extends ConsumerState<BetiApp> {
       title: AppStrings.appName,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       routerConfig: router,
       builder: (context, child) {
         if (!PlatformHelper.isApple) return child!;

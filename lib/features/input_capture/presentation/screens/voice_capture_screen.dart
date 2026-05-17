@@ -48,11 +48,16 @@ class _VoiceCaptureScreenState extends ConsumerState<VoiceCaptureScreen>
   }
 
   @override
+  void deactivate() {
+    ref.read(speechProvider.notifier).cancel();
+    super.deactivate();
+  }
+
+  @override
   void dispose() {
     _pulseController.dispose();
     _waveController.dispose();
     _fadeController.dispose();
-    ref.read(speechProvider.notifier).cancel();
     super.dispose();
   }
 

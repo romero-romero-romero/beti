@@ -14,9 +14,8 @@ class NotificationPreferencesNotifier
     extends AsyncNotifier<NotificationPreferencesModel> {
   @override
   Future<NotificationPreferencesModel> build() async {
-    final isar = ref.watch(isarProvider);
+    final isar = ref.read(isarProvider);
     final stored = await isar.notificationPreferencesModels.get(1);
-    // Primera vez: retorna defaults (no persiste hasta que el usuario cambie algo)
     return stored ?? NotificationPreferencesModel();
   }
 

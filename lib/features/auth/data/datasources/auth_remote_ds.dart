@@ -36,7 +36,10 @@ class AuthRemoteDataSource {
   }
 
   Future<void> resetPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email);
+    await _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: 'app.beti.mx://reset-password',
+    );
   }
 
   Future<void> signOut() async {

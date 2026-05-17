@@ -82,6 +82,8 @@ class TransactionDraft {
   final String description;
   final CategoryType category;
   final bool categoryAutoAssigned;
+  final CategoryType? autoSuggestedCategory;
+
   final InputMethod inputMethod;
   final DateTime transactionDate;
   final String? rawInputText;
@@ -96,6 +98,7 @@ class TransactionDraft {
     this.description = '',
     this.category = CategoryType.other,
     this.categoryAutoAssigned = false,
+    this.autoSuggestedCategory,
     this.inputMethod = InputMethod.manual,
     DateTime? transactionDate,
     this.rawInputText,
@@ -112,6 +115,7 @@ class TransactionDraft {
     String? description,
     CategoryType? category,
     bool? categoryAutoAssigned,
+    CategoryType? autoSuggestedCategory,
     InputMethod? inputMethod,
     DateTime? transactionDate,
     String? rawInputText,
@@ -127,6 +131,7 @@ class TransactionDraft {
       description: description ?? this.description,
       category: category ?? this.category,
       categoryAutoAssigned: categoryAutoAssigned ?? this.categoryAutoAssigned,
+      autoSuggestedCategory: autoSuggestedCategory ?? this.autoSuggestedCategory,
       inputMethod: inputMethod ?? this.inputMethod,
       transactionDate: transactionDate ?? this.transactionDate,
       rawInputText: rawInputText ?? this.rawInputText,
@@ -202,10 +207,15 @@ class TransactionFormNotifier extends StateNotifier<TransactionDraft> {
     final predicted = CategorizationEngine.predict(description);
     final inferredType = CategorizationEngine.inferType(predicted);
 
+    // autoSuggestedCategory se setea SOLO la primera vez (cuando es null).
+    // Esto preserva la predicción original del motor para detectar
+    // correcciones manuales del usuario más tarde, sin importar en qué
+    // pantalla las haga.
     state = state.copyWith(
       description: description,
       category: predicted,
       categoryAutoAssigned: predicted != CategoryType.other,
+      autoSuggestedCategory: state.autoSuggestedCategory ?? predicted,
       type: predicted != CategoryType.other ? inferredType : state.type,
     );
   }
